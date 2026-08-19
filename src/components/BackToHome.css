@@ -1,0 +1,22 @@
+.back-to-home {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0 3rem;
+}
+
+.back-to-home__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+
+.back-to-home__link:hover {
+  border-color: var(--fg);
+}

@@ -1,0 +1,62 @@
+.account {
+  padding: 64px 0;
+  max-width: 420px;
+}
+
+.account__title {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  margin-bottom: 32px;
+}
+
+.account__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account__input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  color: var(--fg);
+  background: var(--white);
+}
+
+.account__input:focus {
+  border-color: var(--fg);
+}
+
+.account__submit {
+  background: var(--red);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 14px;
+  border-radius: var(--radius);
+  transition: background 0.2s;
+}
+
+.account__submit:hover {
+  background: var(--red-dark);
+}
+
+.account__toggle {
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.account__toggle button {
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: underline;
+}
