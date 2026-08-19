@@ -10,7 +10,8 @@ export interface Product {
   type: string;
   available: boolean;
   img: string;
-  img2: string;
+  img2?: string;
+  img3?: string;
   description: string;
   tag?: string;
   sizes?: Size[];
@@ -25,7 +26,8 @@ export const products: Product[] = [
     price: 30,
     type: 'Vinili',
     available: true,
-    img: '/products/vinile.jpg',
+    img2: '/products/vinile-2.jpg',
+    img3: '/products/vinile-3.jpg',
     img2: '/products/vinile.jpg',
     description: '"TROPPO LARGO" — il primo album da solista di XL, interamente autoprodotto.\n\nTracklist:\n1. Rap Chanel\n2. Troppo Largo\n3. Il Motivo\n4. Sacra\n5. Schh\n6. Il Segreto\n7. Polemiche\n8. Ridi Ridi\n9. La Spinta\n10. Il Vizio\n11. Segno\n12. Il Contrario\n13. Detto Fatto\n14. Via Vai\n15. Chi Lo Fa\n\nL\'anteprima del vinile è un mock-up digitale, il prodotto finale potrebbe differire da questa anteprima.',
   },
@@ -35,7 +37,6 @@ export const products: Product[] = [
     price: 20,
     type: 'CD',
     available: true,
-    img: '/products/cd.jpg',
     img2: '/products/cd.jpg',
     description: '"TROPPO LARGO" — il primo album da solista di XL, interamente autoprodotto.\n\nTracklist:\n1. Rap Chanel\n2. Troppo Largo\n3. Il Motivo\n4. Sacra\n5. Schh\n6. Il Segreto\n7. Polemiche\n8. Ridi Ridi\n9. La Spinta\n10. Il Vizio\n11. Segno\n12. Il Contrario\n13. Detto Fatto\n14. Via Vai\n15. Chi Lo Fa\n\nL\'anteprima del CD è un mock-up digitale, il prodotto finale potrebbe differire da questa anteprima.',
   },
