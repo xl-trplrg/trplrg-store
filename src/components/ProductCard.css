@@ -27,7 +27,7 @@
   opacity: 1;
 }
 
-.product-card:hover .product-card__media img:first-child {
+.product-card:hover .product-card__media:has(.product-card__alt) img:first-child {
   opacity: 0;
 }
 
