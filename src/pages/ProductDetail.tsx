@@ -27,7 +27,7 @@ export default function ProductDetail() {
     );
   }
 
-  const images = [product.img, product.img2].filter(Boolean);
+  const images = [product.img, product.img2, product.img3].filter(Boolean);
   const sameType = products.filter(p => p.type === product.type && p.handle !== product.handle);
   const related = (sameType.length > 0 ? sameType : products.filter(p => p.handle !== product.handle)).slice(0, 4);
 
