@@ -79,6 +79,7 @@ export default function Footer() {
             <Link to="/resi">Politica di restituzione</Link>
             <Link to="/termini">Termini di servizio</Link>
             <Link to="/privacy">Informativa sulla privacy</Link>
+          <Link to="/cookie-policy">Cookie Policy</Link>  
           </div>
           <div className="footer__bottom-right">
             <div className="footer__payments">
