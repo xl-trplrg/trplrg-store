@@ -12,6 +12,7 @@ import CartPage from './pages/CartPage';
 import Search from './pages/Search';
 import Account from './pages/Account';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import CookiePolicy from './pages/CookiePolicy';
 import ReturnPolicy from './pages/ReturnPolicy';
 import Contacts from './pages/Contacts';
 import TermsOfService from './pages/TermsOfService';
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/search" element={<Search />} />
               <Route path="/account" element={<Account />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/resi" element={<ReturnPolicy />} />
               <Route path="/recapiti" element={<Contacts />} />
               <Route path="/termini" element={<TermsOfService />} />
