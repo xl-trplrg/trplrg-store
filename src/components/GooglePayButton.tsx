@@ -7,10 +7,16 @@ declare global {
   }
 }
 
+interface Buyer {
+  name: string;
+  address: string;
+}
+
 interface Props {
   items: CartItem[];
   total: number;
-  onSuccess: (orderId: string) => void;
+  shippingZone: string;
+  onSuccess: (orderId: string, buyer?: Buyer) => void;
 }
 
 // SEGNAPOSTO: la chiave pubblicabile Stripe è un dato PUBBLICO (non un segreto), va bene
@@ -53,7 +59,7 @@ const cardPaymentMethod = {
   tokenizationSpecification,
 };
 
-export default function GooglePayButton({ items, total, onSuccess }: Props) {
+export default function GooglePayButton({ items, total, shippingZone, onSuccess }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<any>(null);
 
@@ -118,7 +124,17 @@ export default function GooglePayButton({ items, total, onSuccess }: Props) {
             currencyCode: 'EUR',
             countryCode: 'IT',
           },
+          shippingAddressRequired: true,
+          shippingAddressParameters: { phoneNumberRequired: false },
         });
+
+        const address = paymentData.shippingAddress;
+        const buyer = address
+          ? {
+              name: address.name || '',
+              address: `${[address.address1, address.address2].filter(Boolean).join(', ')}, ${address.postalCode || ''} ${address.locality || ''}${address.administrativeArea ? ' (' + address.administrativeArea + ')' : ''} - ${address.countryCode || ''}`,
+            }
+          : undefined;
 
         const stripeToken = JSON.parse(paymentData.paymentMethodData.tokenizationData.token);
 
@@ -128,12 +144,13 @@ export default function GooglePayButton({ items, total, onSuccess }: Props) {
           body: JSON.stringify({
             tokenId: stripeToken.id,
             items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity, size: i.size })),
+            shippingZone,
           }),
         });
 
         const data = await res.json();
         if (data.success) {
-          onSuccess(data.orderId);
+          onSuccess(data.orderId, buyer);
         }
       } catch (err: any) {
         // L'utente ha chiuso la finestra Google Pay, oppure errore: non facciamo nulla di rumoroso.
@@ -155,7 +172,7 @@ export default function GooglePayButton({ items, total, onSuccess }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [items, total, onSuccess]);
+  }, [items, total, shippingZone, onSuccess]);
 
   return <div ref={containerRef} className="google-pay-button-container" />;
 }

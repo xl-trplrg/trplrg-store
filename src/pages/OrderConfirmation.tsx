@@ -7,12 +7,19 @@ interface OrderItem {
   name: string;
   quantity: number;
   amount: number;
+  image?: string | null;
+}
+
+interface Buyer {
+  name: string;
+  address: string;
 }
 
 interface OrderData {
   orderId: string | null;
   items: OrderItem[];
   total: number;
+  buyer?: Buyer | null;
 }
 
 export default function OrderConfirmation() {
@@ -82,10 +89,22 @@ export default function OrderConfirmation() {
           </p>
         )}
 
+        {order.buyer?.name && (
+          <div className="order-confirmation__buyer">
+            <p className="order-confirmation__buyer-name">{order.buyer.name}</p>
+            {order.buyer.address && (
+              <p className="order-confirmation__buyer-address">{order.buyer.address}</p>
+            )}
+          </div>
+        )}
+
         <div className="order-confirmation__items">
           {order.items.map((item, idx) => (
             <div key={idx} className="order-confirmation__item">
-              <div>
+              {item.image && (
+                <img src={item.image} alt={item.name} className="order-confirmation__item-img" />
+              )}
+              <div className="order-confirmation__item-info">
                 <p className="order-confirmation__item-name">{item.name}</p>
                 <p className="order-confirmation__item-qty">Qtà: {item.quantity}</p>
               </div>

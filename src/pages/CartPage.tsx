@@ -8,7 +8,7 @@ import GooglePayButton from '../components/GooglePayButton';
 import './CartPage.css';
 
 const SHIPPING_OPTIONS = [
-  { value: 'IT', label: 'Italia', cost: 0 },
+  { value: 'IT', label: 'Italia', cost: 6 },
   { value: 'EU', label: 'Europa', cost: 12 },
   { value: 'WORLD', label: 'Resto del mondo', cost: 20 },
 ];
@@ -23,7 +23,7 @@ export default function CartPage() {
   const shippingCost = SHIPPING_OPTIONS.find(s => s.value === zone)?.cost ?? 0;
   const grandTotal = total + shippingCost;
 
-  const handleWalletSuccess = (orderId: string) => {
+  const handleWalletSuccess = (orderId: string, buyer?: { name: string; address: string }) => {
     navigate('/ordine-confermato', {
       state: {
         orderId,
@@ -31,32 +31,23 @@ export default function CartPage() {
           name: i.size ? `${i.product.title} — Taglia ${i.size}` : i.product.title,
           quantity: i.quantity,
           amount: i.product.price * i.quantity,
+          image: i.product.img,
         })),
         total: grandTotal,
+        buyer,
       },
     });
     clear();
   };
 
   // ===== TEST TEMPORANEO — RIMUOVERE PRIMA DEL LANCIO =====
-  const handleTestOrder = async () => {
-    let orderId = 'TRPLRG-TEST';
-    try {
-      const res = await fetch('/.netlify/functions/generate-order-id', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [{ handle: 'xl-felpa', quantity: 1 }] }),
-      });
-      const data = await res.json();
-      orderId = data.orderId || orderId;
-    } catch {
-      // fallback già impostato sopra
-    }
+  const handleTestOrder = () => {
     navigate('/ordine-confermato', {
       state: {
-        orderId,
-        items: [{ name: 'TROPPO LARGO - Hoodie', quantity: 1, amount: 40 }],
-        total: 40,
+        orderId: 'TRPLRG-TEST-000-F',
+        items: [{ name: 'TROPPO LARGO - Hoodie', quantity: 1, amount: 40, image: '/products/hoodie-front.jpg' }],
+        total: 46,
+        buyer: { name: 'Giulio Dantini', address: 'Via Roma 20, 50100 Firenze (FI) - IT' },
       },
     });
   };
@@ -165,7 +156,7 @@ export default function CartPage() {
 
           <div className="cart-page__wallets-wrap">
             <PayPalButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
-            <GooglePayButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
+            <GooglePayButton items={items} total={grandTotal} shippingZone={zone} onSuccess={handleWalletSuccess} />
           </div>
 
           {/* ===== TEST TEMPORANEO — RIMUOVERE PRIMA DEL LANCIO ===== */}

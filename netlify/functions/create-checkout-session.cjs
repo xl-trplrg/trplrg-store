@@ -12,15 +12,15 @@ const { generateOrderId } = require('./lib/order-id.cjs');
 // Deve restare identica a src/data/products.ts (handle + price), altrimenti i totali non torneranno.
 // Quando aggiorni un prezzo in products.ts, aggiornalo anche qui.
 const PRICES = {
-  'xl-vinile': { name: 'TROPPO LARGO Vinyl', price: 30 },
-  'xl-cd': { name: 'TROPPO LARGO CD Edition', price: 20 },
-  'xl-maglietta': { name: 'YATP T-Shirt Bianca', price: 25 },
-  'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40 },
+  'xl-vinile': { name: 'TROPPO LARGO Vinyl', price: 30, img: '/products/vinile.jpg' },
+  'xl-cd': { name: 'TROPPO LARGO CD Edition', price: 20, img: '/products/cd.jpg' },
+  'xl-maglietta': { name: 'YATP T-Shirt Bianca', price: 25, img: '/products/tshirt-front.jpg' },
+  'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40, img: '/products/hoodie-front.jpg' },
 };
 
 // Tariffe di spedizione fisse per zona (come deciso: Italia inclusa, poi fasce).
 const SHIPPING = {
-  IT: 0,
+  IT: 600, // 6€ in centesimi
   EU: 1200, // 12€ in centesimi
   WORLD: 2000, // 20€ in centesimi
 };
@@ -38,6 +38,8 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
     }
 
+    const origin = event.headers.origin || `https://${event.headers.host}`;
+
     // Costruzione line_items usando SOLO i prezzi noti dal server (mai quelli mandati dal client)
     const line_items = items.map((item) => {
       const known = PRICES[item.handle];
@@ -46,7 +48,7 @@ exports.handler = async (event) => {
       return {
         price_data: {
           currency: 'eur',
-          product_data: { name },
+          product_data: { name, images: [`${origin}${known.img}`] },
           unit_amount: Math.round(known.price * 100),
         },
         quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
@@ -65,7 +67,6 @@ exports.handler = async (event) => {
       });
     }
 
-    const origin = event.headers.origin || `https://${event.headers.host}`;
     let orderId = 'TRPLRG-000000-000-X';
     try {
       orderId = await generateOrderId(items);

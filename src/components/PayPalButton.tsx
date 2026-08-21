@@ -7,10 +7,15 @@ declare global {
   }
 }
 
+interface Buyer {
+  name: string;
+  address: string;
+}
+
 interface Props {
   items: CartItem[];
   total: number;
-  onSuccess: (orderId: string) => void;
+  onSuccess: (orderId: string, buyer?: Buyer) => void;
 }
 
 // SEGNAPOSTO: il Client ID PayPal è un dato PUBBLICO (non un segreto), va bene metterlo nel
@@ -59,7 +64,7 @@ export default function PayPalButton({ items, total, onSuccess }: Props) {
                 });
               },
               onApprove: async (_data: unknown, actions: any) => {
-                await actions.order.capture();
+                const details = await actions.order.capture();
                 let orderId = '';
                 try {
                   const res = await fetch('/.netlify/functions/generate-order-id', {
@@ -74,7 +79,27 @@ export default function PayPalButton({ items, total, onSuccess }: Props) {
                 } catch {
                   orderId = '';
                 }
-                onSuccess(orderId);
+
+                let buyer: Buyer | undefined;
+                try {
+                  const shipping = details?.purchase_units?.[0]?.shipping;
+                  const payerName = details?.payer?.name;
+                  const name = shipping?.name?.full_name
+                    || (payerName ? `${payerName.given_name || ''} ${payerName.surname || ''}`.trim() : '');
+                  const a = shipping?.address;
+                  if (name || a) {
+                    buyer = {
+                      name: name || '',
+                      address: a
+                        ? `${[a.address_line_1, a.address_line_2].filter(Boolean).join(', ')}, ${a.postal_code || ''} ${a.admin_area_2 || ''}${a.admin_area_1 ? ' (' + a.admin_area_1 + ')' : ''} - ${a.country_code || ''}`
+                        : '',
+                    };
+                  }
+                } catch {
+                  buyer = undefined;
+                }
+
+                onSuccess(orderId, buyer);
               },
             })
             .render(containerRef.current);

@@ -17,7 +17,7 @@ exports.handler = async (event) => {
   try {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['line_items'],
+      expand: ['line_items.data.price.product'],
     });
 
     if (session.payment_status !== 'paid') {
@@ -28,7 +28,19 @@ exports.handler = async (event) => {
       name: li.description,
       quantity: li.quantity,
       amount: (li.amount_total || 0) / 100,
+      image: li.price?.product?.images?.[0] || null,
     }));
+
+    let buyer = null;
+    const shipping = session.shipping_details;
+    if (shipping?.name && shipping?.address) {
+      const a = shipping.address;
+      const addressLine = [a.line1, a.line2].filter(Boolean).join(', ');
+      buyer = {
+        name: shipping.name,
+        address: `${addressLine}, ${a.postal_code || ''} ${a.city || ''}${a.state ? ' (' + a.state + ')' : ''} - ${a.country || ''}`,
+      };
+    }
 
     return {
       statusCode: 200,
@@ -36,6 +48,7 @@ exports.handler = async (event) => {
         orderId: session.metadata?.orderId || null,
         items,
         total: (session.amount_total || 0) / 100,
+        buyer,
       }),
     };
   } catch (err) {

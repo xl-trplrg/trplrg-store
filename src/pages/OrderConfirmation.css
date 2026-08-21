@@ -49,8 +49,23 @@
   border-radius: 8px;
   padding: 8px 14px;
   display: inline-block;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   letter-spacing: 0.3px;
+}
+
+.order-confirmation__buyer {
+  margin-bottom: 24px;
+}
+
+.order-confirmation__buyer-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.order-confirmation__buyer-address {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
 }
 
 .order-confirmation__items {
@@ -63,14 +78,28 @@
 
 .order-confirmation__item {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
 
 .order-confirmation__item:last-of-type {
   border-bottom: none;
+}
+
+.order-confirmation__item-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #eee;
+}
+
+.order-confirmation__item-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .order-confirmation__item-name {

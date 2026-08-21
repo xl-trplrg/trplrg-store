@@ -17,6 +17,9 @@ const PRICES = {
   'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40 },
 };
 
+// Stessa fonte di verità spedizioni usata da create-checkout-session.cjs.
+const SHIPPING = { IT: 6, EU: 12, WORLD: 20 };
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -24,7 +27,7 @@ exports.handler = async (event) => {
 
   try {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-    const { tokenId, items } = JSON.parse(event.body);
+    const { tokenId, items, shippingZone } = JSON.parse(event.body);
 
     if (!tokenId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Token mancante' }) };
@@ -40,6 +43,7 @@ exports.handler = async (event) => {
       if (!known) throw new Error(`Prodotto sconosciuto: ${item.handle}`);
       amount += known.price * Math.max(1, parseInt(item.quantity, 10) || 1);
     }
+    amount += SHIPPING[shippingZone] ?? SHIPPING.WORLD;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
