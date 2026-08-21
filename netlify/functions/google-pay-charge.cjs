@@ -53,7 +53,12 @@ exports.handler = async (event) => {
     });
 
     if (paymentIntent.status === 'succeeded') {
-      const orderId = await generateOrderId(items);
+      let orderId = 'TRPLRG-000000-000-X';
+      try {
+        orderId = await generateOrderId(items);
+      } catch {
+        // il pagamento è già riuscito, non blocchiamo la risposta per un problema di order-id
+      }
       return { statusCode: 200, body: JSON.stringify({ success: true, orderId }) };
     }
 

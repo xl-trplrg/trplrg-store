@@ -42,18 +42,25 @@ async function generateOrderId(items) {
   const { mm, dd, yy } = datePartsRome();
   const dateKey = `${yy}-${mm}-${dd}`;
 
-  const store = getStore('order-counters');
-  let current = 0;
+  let progressive = '000';
   try {
-    const existing = await store.get(dateKey, { type: 'json' });
-    if (typeof existing === 'number') current = existing;
+    const store = getStore('order-counters');
+    let current = 0;
+    try {
+      const existing = await store.get(dateKey, { type: 'json' });
+      if (typeof existing === 'number') current = existing;
+    } catch {
+      current = 0;
+    }
+    const next = current + 1;
+    await store.setJSON(dateKey, next);
+    progressive = String(next).padStart(3, '0');
   } catch {
-    current = 0;
+    // Netlify Blobs momentaneamente non disponibile: non blocchiamo mai il checkout.
+    // Fallback: ultime 3 cifre dei millisecondi correnti, comunque diverse ad ogni ordine.
+    progressive = String(Date.now()).slice(-3);
   }
-  const next = current + 1;
-  await store.setJSON(dateKey, next);
 
-  const progressive = String(next).padStart(3, '0');
   const suffix = buildSuffix(items) || 'X';
 
   return `TRPLRG-${mm}${dd}${yy}-${progressive}-${suffix}`;

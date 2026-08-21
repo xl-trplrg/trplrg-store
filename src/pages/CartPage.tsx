@@ -38,6 +38,30 @@ export default function CartPage() {
     clear();
   };
 
+  // ===== TEST TEMPORANEO — RIMUOVERE PRIMA DEL LANCIO =====
+  const handleTestOrder = async () => {
+    let orderId = 'TRPLRG-TEST';
+    try {
+      const res = await fetch('/.netlify/functions/generate-order-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ handle: 'xl-felpa', quantity: 1 }] }),
+      });
+      const data = await res.json();
+      orderId = data.orderId || orderId;
+    } catch {
+      // fallback già impostato sopra
+    }
+    navigate('/ordine-confermato', {
+      state: {
+        orderId,
+        items: [{ name: 'TROPPO LARGO - Hoodie', quantity: 1, amount: 40 }],
+        total: 40,
+      },
+    });
+  };
+  // ===== FINE TEST TEMPORANEO =====
+
   const handleStripeCheckout = async () => {
     setError('');
     setLoadingStripe(true);
@@ -143,6 +167,26 @@ export default function CartPage() {
             <PayPalButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
             <GooglePayButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
           </div>
+
+          {/* ===== TEST TEMPORANEO — RIMUOVERE PRIMA DEL LANCIO ===== */}
+          <button
+            type="button"
+            onClick={handleTestOrder}
+            style={{
+              marginTop: 12,
+              padding: '10px',
+              width: '100%',
+              background: '#333',
+              color: '#fff',
+              borderRadius: 8,
+              border: '1px dashed #999',
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            🧪 TEST: simula ordine (nessun pagamento reale)
+          </button>
+          {/* ===== FINE TEST TEMPORANEO ===== */}
 
           <Link to="/" className="cart-page__continue">Continua lo shopping</Link>
         </div>

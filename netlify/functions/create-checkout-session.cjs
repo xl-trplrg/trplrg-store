@@ -66,7 +66,12 @@ exports.handler = async (event) => {
     }
 
     const origin = event.headers.origin || `https://${event.headers.host}`;
-    const orderId = await generateOrderId(items);
+    let orderId = 'TRPLRG-000000-000-X';
+    try {
+      orderId = await generateOrderId(items);
+    } catch {
+      // non blocchiamo mai un pagamento per un problema di generazione ID
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
