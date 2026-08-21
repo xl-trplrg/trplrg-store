@@ -15,7 +15,7 @@ interface Buyer {
 interface Props {
   items: CartItem[];
   total: number;
-  shippingZone: string;
+  country: string;
   onSuccess: (orderId: string, buyer?: Buyer) => void;
 }
 
@@ -59,7 +59,7 @@ const cardPaymentMethod = {
   tokenizationSpecification,
 };
 
-export default function GooglePayButton({ items, total, shippingZone, onSuccess }: Props) {
+export default function GooglePayButton({ items, total, country, onSuccess }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<any>(null);
 
@@ -144,7 +144,7 @@ export default function GooglePayButton({ items, total, shippingZone, onSuccess 
           body: JSON.stringify({
             tokenId: stripeToken.id,
             items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity, size: i.size })),
-            shippingZone,
+            country,
           }),
         });
 
@@ -172,7 +172,7 @@ export default function GooglePayButton({ items, total, shippingZone, onSuccess 
     return () => {
       cancelled = true;
     };
-  }, [items, total, shippingZone, onSuccess]);
+  }, [items, total, country, onSuccess]);
 
   return <div ref={containerRef} className="google-pay-button-container" />;
 }

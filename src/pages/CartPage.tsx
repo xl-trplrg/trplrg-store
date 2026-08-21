@@ -1,26 +1,21 @@
 import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../data/products';
+import { shippingCountries, getShippingCost } from '../data/shipping';
 import { Link, useNavigate } from 'react-router-dom';
 import { PlusIcon, MinusIcon, TrashIcon } from '../components/Icons';
 import PayPalButton from '../components/PayPalButton';
 import GooglePayButton from '../components/GooglePayButton';
 import './CartPage.css';
 
-const SHIPPING_OPTIONS = [
-  { value: 'IT', label: 'Italia', cost: 6 },
-  { value: 'EU', label: 'Europa', cost: 12 },
-  { value: 'WORLD', label: 'Resto del mondo', cost: 20 },
-];
-
 export default function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
-  const [zone, setZone] = useState('IT');
+  const [country, setCountry] = useState('IT');
   const [loadingStripe, setLoadingStripe] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const shippingCost = SHIPPING_OPTIONS.find(s => s.value === zone)?.cost ?? 0;
+  const shippingCost = getShippingCost(country);
   const grandTotal = total + shippingCost;
 
   const handleWalletSuccess = (orderId: string, buyer?: { name: string; address: string }) => {
@@ -49,7 +44,7 @@ export default function CartPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity, size: i.size })),
-          shippingZone: zone,
+          country,
         }),
       });
       const data = await res.json();
@@ -117,10 +112,10 @@ export default function CartPage() {
 
           <label className="cart-page__summary-row cart-page__shipping-select">
             <span>Spedizione</span>
-            <select value={zone} onChange={e => setZone(e.target.value)}>
-              {SHIPPING_OPTIONS.map(s => (
-                <option key={s.value} value={s.value}>
-                  {s.label} {s.cost > 0 ? `(+${s.cost}€)` : '(incluso)'}
+            <select value={country} onChange={e => setCountry(e.target.value)}>
+              {shippingCountries.map(c => (
+                <option key={c.code} value={c.code}>
+                  {c.label} (+{c.cost}€)
                 </option>
               ))}
             </select>
@@ -143,7 +138,7 @@ export default function CartPage() {
 
           <div className="cart-page__wallets-wrap">
             <PayPalButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
-            <GooglePayButton items={items} total={grandTotal} shippingZone={zone} onSuccess={handleWalletSuccess} />
+            <GooglePayButton items={items} total={grandTotal} country={country} onSuccess={handleWalletSuccess} />
           </div>
 
           <Link to="/" className="cart-page__continue">Continua lo shopping</Link>

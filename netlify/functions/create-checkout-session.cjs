@@ -7,6 +7,7 @@
 
 const Stripe = require('stripe');
 const { generateOrderId } = require('./lib/order-id.cjs');
+const { getShippingCost } = require('./lib/shipping.cjs');
 
 // IMPORTANTE: questa lista prezzi è la fonte di verità server-side.
 // Deve restare identica a src/data/products.ts (handle + price), altrimenti i totali non torneranno.
@@ -18,13 +19,6 @@ const PRICES = {
   'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40, img: '/products/hoodie-front.jpg' },
 };
 
-// Tariffe di spedizione fisse per zona (come deciso: Italia inclusa, poi fasce).
-const SHIPPING = {
-  IT: 600, // 6€ in centesimi
-  EU: 1200, // 12€ in centesimi
-  WORLD: 2000, // 20€ in centesimi
-};
-
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -32,7 +26,7 @@ exports.handler = async (event) => {
 
   try {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-    const { items, shippingZone } = JSON.parse(event.body);
+    const { items, country } = JSON.parse(event.body);
 
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
@@ -55,7 +49,8 @@ exports.handler = async (event) => {
       };
     });
 
-    const shippingCost = SHIPPING[shippingZone] ?? SHIPPING.WORLD;
+    // Costo di spedizione in base al paese scelto sul carrello (zone BRT, vedi lib/shipping.cjs)
+    const shippingCost = Math.round(getShippingCost(country) * 100);
     if (shippingCost > 0) {
       line_items.push({
         price_data: {
@@ -79,7 +74,15 @@ exports.handler = async (event) => {
       payment_method_types: ['card'],
       line_items,
       metadata: { orderId },
-      shipping_address_collection: { allowed_countries: ['IT', 'FR', 'DE', 'ES', 'GB', 'US', 'PT', 'NL', 'BE', 'AT', 'CH'] },
+      shipping_address_collection: {
+        allowed_countries: [
+          'IT', 'FR', 'DE', 'AT', 'NL', 'HR', 'HU', 'SI',
+          'ES', 'BE', 'PL', 'BG', 'CZ', 'LU',
+          'DK', 'PT', 'GR', 'SK', 'RO',
+          'SE', 'FI', 'EE', 'LV', 'LT', 'IE', 'GB', 'CH',
+          'US', 'CA',
+        ],
+      },
       success_url: `${origin}/ordine-confermato?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?checkout=cancel`,
     });
