@@ -15,6 +15,21 @@ const LETTERS = {
   'xl-album-digitale': 'D',
 };
 
+// Su questo sito Netlify non inietta automaticamente le credenziali di Blobs
+// nella function (errore "MissingBlobsEnvironmentError"), quindi le passiamo
+// a mano tramite due variabili d'ambiente configurate su Netlify:
+// BLOBS_SITE_ID e BLOBS_TOKEN. Se un giorno l'iniezione automatica di Netlify
+// dovesse iniziare a funzionare, questa funzione continua a usare comunque
+// le variabili esplicite se presenti, altrimenti torna al comportamento di default.
+function getOrderCountersStore() {
+  const siteID = process.env.BLOBS_SITE_ID;
+  const token = process.env.BLOBS_TOKEN;
+  if (siteID && token) {
+    return getStore({ name: 'order-counters', siteID, token });
+  }
+  return getStore('order-counters');
+}
+
 function datePartsRome() {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Europe/Rome',
@@ -45,7 +60,7 @@ async function generateOrderId(items) {
 
   let progressive = '000';
   try {
-    const store = getStore('order-counters');
+    const store = getOrderCountersStore();
     let current = 0;
     try {
       const existing = await store.get(dateKey, { type: 'json' });
