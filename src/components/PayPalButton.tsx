@@ -10,7 +10,7 @@ declare global {
 interface Props {
   items: CartItem[];
   total: number;
-  onSuccess: () => void;
+  onSuccess: (orderId: string) => void;
 }
 
 // SEGNAPOSTO: il Client ID PayPal è un dato PUBBLICO (non un segreto), va bene metterlo nel
@@ -60,7 +60,21 @@ export default function PayPalButton({ items, total, onSuccess }: Props) {
               },
               onApprove: async (_data: unknown, actions: any) => {
                 await actions.order.capture();
-                onSuccess();
+                let orderId = '';
+                try {
+                  const res = await fetch('/.netlify/functions/generate-order-id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity })),
+                    }),
+                  });
+                  const data = await res.json();
+                  orderId = data.orderId || '';
+                } catch {
+                  orderId = '';
+                }
+                onSuccess(orderId);
               },
             })
             .render(containerRef.current);

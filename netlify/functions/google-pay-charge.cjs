@@ -6,6 +6,7 @@
 // create-checkout-session.cjs — nessuna configurazione aggiuntiva richiesta qui.
 
 const Stripe = require('stripe');
+const { generateOrderId } = require('./lib/order-id.cjs');
 
 // Stessa fonte di verità prezzi usata da create-checkout-session.cjs.
 // Se aggiorni un prezzo in un posto, aggiornalo anche nell'altro.
@@ -52,7 +53,8 @@ exports.handler = async (event) => {
     });
 
     if (paymentIntent.status === 'succeeded') {
-      return { statusCode: 200, body: JSON.stringify({ success: true }) };
+      const orderId = await generateOrderId(items);
+      return { statusCode: 200, body: JSON.stringify({ success: true, orderId }) };
     }
 
     return { statusCode: 400, body: JSON.stringify({ error: 'Pagamento non completato', status: paymentIntent.status }) };

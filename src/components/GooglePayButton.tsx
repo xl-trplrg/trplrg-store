@@ -10,7 +10,7 @@ declare global {
 interface Props {
   items: CartItem[];
   total: number;
-  onSuccess: () => void;
+  onSuccess: (orderId: string) => void;
 }
 
 // SEGNAPOSTO: la chiave pubblicabile Stripe è un dato PUBBLICO (non un segreto), va bene
@@ -133,7 +133,7 @@ export default function GooglePayButton({ items, total, onSuccess }: Props) {
 
         const data = await res.json();
         if (data.success) {
-          onSuccess();
+          onSuccess(data.orderId);
         }
       } catch (err: any) {
         // L'utente ha chiuso la finestra Google Pay, oppure errore: non facciamo nulla di rumoroso.

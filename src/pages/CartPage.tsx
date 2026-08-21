@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../data/products';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PlusIcon, MinusIcon, TrashIcon } from '../components/Icons';
 import PayPalButton from '../components/PayPalButton';
 import GooglePayButton from '../components/GooglePayButton';
@@ -18,9 +18,25 @@ export default function CartPage() {
   const [zone, setZone] = useState('IT');
   const [loadingStripe, setLoadingStripe] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const shippingCost = SHIPPING_OPTIONS.find(s => s.value === zone)?.cost ?? 0;
   const grandTotal = total + shippingCost;
+
+  const handleWalletSuccess = (orderId: string) => {
+    navigate('/ordine-confermato', {
+      state: {
+        orderId,
+        items: items.map(i => ({
+          name: i.size ? `${i.product.title} — Taglia ${i.size}` : i.product.title,
+          quantity: i.quantity,
+          amount: i.product.price * i.quantity,
+        })),
+        total: grandTotal,
+      },
+    });
+    clear();
+  };
 
   const handleStripeCheckout = async () => {
     setError('');
@@ -124,8 +140,8 @@ export default function CartPage() {
           </button>
 
           <div className="cart-page__wallets-wrap">
-            <PayPalButton items={items} total={grandTotal} onSuccess={clear} />
-            <GooglePayButton items={items} total={grandTotal} onSuccess={clear} />
+            <PayPalButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
+            <GooglePayButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
           </div>
 
           <Link to="/" className="cart-page__continue">Continua lo shopping</Link>

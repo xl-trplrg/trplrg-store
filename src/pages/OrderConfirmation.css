@@ -1,0 +1,116 @@
+.order-confirmation {
+  padding: 60px 0 80px;
+  display: flex;
+  justify-content: center;
+}
+
+.order-confirmation__loading {
+  text-align: center;
+  color: var(--muted);
+  padding: 80px 0;
+}
+
+.order-confirmation__card {
+  width: 100%;
+  max-width: 480px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.order-confirmation__check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #34c759;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.order-confirmation__title {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.order-confirmation__subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.order-confirmation__order-id {
+  font-size: 14px;
+  color: var(--fg);
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: inline-block;
+  margin-bottom: 24px;
+  letter-spacing: 0.3px;
+}
+
+.order-confirmation__items {
+  text-align: left;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 28px;
+}
+
+.order-confirmation__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-confirmation__item:last-of-type {
+  border-bottom: none;
+}
+
+.order-confirmation__item-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.order-confirmation__item-qty {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.order-confirmation__item-amount {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-confirmation__total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 14px;
+  margin-top: 6px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.order-confirmation__button {
+  display: inline-block;
+  width: 100%;
+  background: var(--red);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.order-confirmation__button:hover {
+  background: var(--red-dark);
+}

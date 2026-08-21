@@ -9,6 +9,7 @@ import BackToHome from './components/BackToHome';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
 import CartPage from './pages/CartPage';
+import OrderConfirmation from './pages/OrderConfirmation';
 import Search from './pages/Search';
 import Account from './pages/Account';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/products/:handle" element={<ProductDetail />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/ordine-confermato" element={<OrderConfirmation />} />
               <Route path="/search" element={<Search />} />
               <Route path="/account" element={<Account />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />

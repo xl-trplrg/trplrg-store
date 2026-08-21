@@ -6,6 +6,7 @@
 // 2. Non serve incollarla da nessun'altra parte, nè nel codice nè in chat.
 
 const Stripe = require('stripe');
+const { generateOrderId } = require('./lib/order-id.cjs');
 
 // IMPORTANTE: questa lista prezzi è la fonte di verità server-side.
 // Deve restare identica a src/data/products.ts (handle + price), altrimenti i totali non torneranno.
@@ -65,13 +66,15 @@ exports.handler = async (event) => {
     }
 
     const origin = event.headers.origin || `https://${event.headers.host}`;
+    const orderId = await generateOrderId(items);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items,
+      metadata: { orderId },
       shipping_address_collection: { allowed_countries: ['IT', 'FR', 'DE', 'ES', 'GB', 'US', 'PT', 'NL', 'BE', 'AT', 'CH'] },
-      success_url: `${origin}/?checkout=success`,
+      success_url: `${origin}/ordine-confermato?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?checkout=cancel`,
     });
 
