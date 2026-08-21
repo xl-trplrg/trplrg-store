@@ -33,7 +33,7 @@ export const products: Product[] = [
     img: '/products/vinile.jpg',
     img2: '/products/vinile-2.jpg',
     img3: '/products/vinile-3.jpg',
-    description: '"TROPPO LARGO" — il primo album da solista di XL, interamente autoprodotto.\n\nTracklist:\n1. Rap Chanel\n2. Troppo Largo\n3. Il Motivo\n4. Sacra\n5. Schh\n6. Il Segreto\n7. Polemiche\n8. Ridi Ridi\n9. La Spinta\n10. Il Vizio\n11. Segno\n12. Il Contrario\n13. Detto Fatto\n14. Via Vai\n15. Chi Lo Fa\n\nL\'anteprima del vinile è un mock-up digitale, il prodotto finale potrebbe differire da questa anteprima.',
+    description: '"TROPPO LARGO" — il primo album da solista di XL, interamente autoprodotto.\n\nTracklist:\n1. Troppo Largo\n2. Polemiche\n3. Schh\n4. Sacra\n5. Il Motivo\n6. Ridi Ridi\n7. Il Vizio\n8. La Spinta\n9. Segno\n10. Il Segreto\n11. Detto Fatto\n12. Via Vai\n13. Chi Lo Fa\n14. Rap Chanel\n\nL\'anteprima del vinile è un mock-up digitale, il prodotto finale potrebbe differire da questa anteprima.',
   },
   {
     handle: 'xl-cd',
