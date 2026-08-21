@@ -17,6 +17,8 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
   const [showQuickPaypal, setShowQuickPaypal] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
 
   if (!product) {
     return (
@@ -30,6 +32,43 @@ export default function ProductDetail() {
   const images = [product.img, product.img2, product.img3].filter(Boolean);
   const sameType = products.filter(p => p.type === product.type && p.handle !== product.handle);
   const related = (sameType.length > 0 ? sameType : products.filter(p => p.handle !== product.handle)).slice(0, 4);
+
+  // Prodotto gratuito digitale: nessun carrello, nessuna spedizione, nessun pagamento.
+  // Chiama solo generate-order-id (utile anche per testare il contatore Blobs), poi scarica il file.
+  const handleFreeDownload = async () => {
+    if (!product.downloadUrl) return;
+    setDownloadError('');
+    setDownloading(true);
+    try {
+      const res = await fetch('/.netlify/functions/generate-order-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ handle: product.handle, quantity: 1 }] }),
+      });
+      const data = await res.json();
+      const orderId = data.orderId ?? null;
+
+      const link = document.createElement('a');
+      link.href = product.downloadUrl;
+      link.download = 'XL - TRPLRG (2026).zip';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      navigate('/ordine-confermato', {
+        state: {
+          orderId,
+          items: [{ name: product.title, quantity: 1, amount: 0, image: product.img, downloadUrl: product.downloadUrl }],
+          total: 0,
+          buyer: null,
+        },
+      });
+    } catch {
+      setDownloadError('Impossibile avviare il download. Riprova.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className="product-detail">
@@ -79,28 +118,41 @@ export default function ProductDetail() {
             </div>
           )}
 
-          <div className="product-detail__buy">
-            <div className="product-detail__qty">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Decrease"><MinusIcon /></button>
-              <span>{qty}</span>
-              <button onClick={() => setQty(qty + 1)} aria-label="Increase"><PlusIcon /></button>
+          {product.digital ? (
+            <div className="product-detail__buy">
+              <button
+                className="product-detail__add"
+                disabled={downloading}
+                onClick={handleFreeDownload}
+              >
+                {downloading ? 'Attendere...' : 'Scarica gratis'}
+              </button>
+              {downloadError && <p className="product-detail__size-error">{downloadError}</p>}
             </div>
-            <button
-              className={`product-detail__add ${!product.available ? 'product-detail__add--disabled' : ''}`}
-              disabled={!product.available}
-              onClick={() => {
-                if (product.sizes && !selectedSize) {
-                  setSizeError(true);
-                  return;
-                }
-                add(product, qty, selectedSize ?? undefined);
-              }}
-            >
-              {product.available ? 'Aggiungi al carrello' : 'Esaurito'}
-            </button>
-          </div>
+          ) : (
+            <div className="product-detail__buy">
+              <div className="product-detail__qty">
+                <button onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Decrease"><MinusIcon /></button>
+                <span>{qty}</span>
+                <button onClick={() => setQty(qty + 1)} aria-label="Increase"><PlusIcon /></button>
+              </div>
+              <button
+                className={`product-detail__add ${!product.available ? 'product-detail__add--disabled' : ''}`}
+                disabled={!product.available}
+                onClick={() => {
+                  if (product.sizes && !selectedSize) {
+                    setSizeError(true);
+                    return;
+                  }
+                  add(product, qty, selectedSize ?? undefined);
+                }}
+              >
+                {product.available ? 'Aggiungi al carrello' : 'Esaurito'}
+              </button>
+            </div>
+          )}
 
-          {product.available && (
+          {product.available && !product.digital && (
             <div className="product-detail__quick-pay">
               {showQuickPaypal ? (
                 <PayPalButton

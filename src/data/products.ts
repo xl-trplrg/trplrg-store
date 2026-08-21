@@ -15,6 +15,10 @@ export interface Product {
   description: string;
   tag?: string;
   sizes?: Size[];
+  // Prodotto digitale gratuito: niente carrello/spedizione/pagamento,
+  // il bottone scarica direttamente il file indicato in downloadUrl.
+  digital?: boolean;
+  downloadUrl?: string;
 }
 
 // SEGNAPOSTO — sostituisci img/img2/description con i tuoi dati reali quando li mandi.
@@ -70,6 +74,17 @@ export const products: Product[] = [
       { label: '3XL', available: true },
     ],
   },
+  {
+    handle: 'xl-album-digitale',
+    title: 'Album Digitale',
+    price: 0,
+    type: 'Digitale',
+    available: true,
+    img: '/products/album-digitale.jpg',
+    description: 'Versione Digitale Scaricabile',
+    digital: true,
+    downloadUrl: '/downloads/XL-TRPLRG-2026.zip',
+  },
 ];
 
 export const homepageOrder = [
@@ -77,6 +92,7 @@ export const homepageOrder = [
   'xl-cd',
   'xl-maglietta',
   'xl-felpa',
+  'xl-album-digitale',
 ];
 
 export function getProduct(handle: string): Product | undefined {
@@ -84,7 +100,8 @@ export function getProduct(handle: string): Product | undefined {
 }
 
 export function formatPrice(price: number): string {
+  if (price === 0) return 'Gratis';
   return `€${price.toFixed(2).replace('.', ',')}`;
 }
 
-export const categories = ['All', 'Vinili', 'CD', 'T-Shirt', 'Felpe'];
+export const categories = ['All', 'Vinili', 'CD', 'T-Shirt', 'Felpe', 'Digitale'];

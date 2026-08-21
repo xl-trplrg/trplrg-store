@@ -12,6 +12,7 @@ const LETTERS = {
   'xl-felpa': 'F',
   'xl-maglietta': 'T',
   'xl-vinile': 'V',
+  'xl-album-digitale': 'D',
 };
 
 function datePartsRome() {
@@ -55,9 +56,11 @@ async function generateOrderId(items) {
     const next = current + 1;
     await store.setJSON(dateKey, next);
     progressive = String(next).padStart(3, '0');
-  } catch {
-    // Netlify Blobs momentaneamente non disponibile: non blocchiamo mai il checkout.
-    // Fallback: ultime 3 cifre dei millisecondi correnti, comunque diverse ad ogni ordine.
+  } catch (err) {
+    // Logghiamo l'errore vero nei log della function Netlify (Netlify UI -> Functions -> logs)
+    // così la prossima volta si vede subito perché Blobs non ha scritto nulla,
+    // invece di scoprirlo solo dal fatto che lo store risulta vuoto.
+    console.error('Netlify Blobs error in generateOrderId:', err);
     progressive = String(Date.now()).slice(-3);
   }
 

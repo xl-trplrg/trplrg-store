@@ -8,6 +8,7 @@ interface OrderItem {
   quantity: number;
   amount: number;
   image?: string | null;
+  downloadUrl?: string | null;
 }
 
 interface Buyer {
@@ -107,6 +108,11 @@ export default function OrderConfirmation() {
               <div className="order-confirmation__item-info">
                 <p className="order-confirmation__item-name">{item.name}</p>
                 <p className="order-confirmation__item-qty">Qtà: {item.quantity}</p>
+                {item.downloadUrl && (
+                  <a href={item.downloadUrl} download className="order-confirmation__download">
+                    Scarica di nuovo
+                  </a>
+                )}
               </div>
               <span className="order-confirmation__item-amount">{formatPrice(item.amount)}</span>
             </div>

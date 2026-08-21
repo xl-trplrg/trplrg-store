@@ -113,6 +113,15 @@
   margin-top: 2px;
 }
 
+.order-confirmation__download {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red-dark);
+  margin-top: 4px;
+  text-decoration: underline;
+}
+
 .order-confirmation__item-amount {
   font-size: 14px;
   font-weight: 600;
