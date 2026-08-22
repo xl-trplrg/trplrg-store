@@ -16,6 +16,8 @@ const PRICES = {
   'xl-cd': { name: 'TROPPO LARGO CD Edition', price: 20 },
   'xl-maglietta': { name: 'YATP T-Shirt Bianca', price: 25 },
   'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40 },
+  // TEST — rimuovere insieme alla voce in src/data/products.ts a test completato.
+  'xl-test-checkout': { name: 'TEST — Prodotto di verifica checkout', price: 1, noShipping: true },
 };
 
 exports.handler = async (event) => {
@@ -41,7 +43,10 @@ exports.handler = async (event) => {
       if (!known) throw new Error(`Prodotto sconosciuto: ${item.handle}`);
       amount += known.price * Math.max(1, parseInt(item.quantity, 10) || 1);
     }
-    amount += getShippingCost(country);
+    const allExemptFromShipping = items.every((item) => PRICES[item.handle]?.noShipping);
+    if (!allExemptFromShipping) {
+      amount += getShippingCost(country);
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),

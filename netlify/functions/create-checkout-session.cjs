@@ -17,6 +17,8 @@ const PRICES = {
   'xl-cd': { name: 'TROPPO LARGO CD Edition', price: 20, img: '/products/cd.jpg' },
   'xl-maglietta': { name: 'YATP T-Shirt Bianca', price: 25, img: '/products/tshirt-front.jpg' },
   'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40, img: '/products/hoodie-front.jpg' },
+  // TEST — rimuovere insieme alla voce in src/data/products.ts a test completato.
+  'xl-test-checkout': { name: 'TEST — Prodotto di verifica checkout', price: 1, img: '/products/album-digitale.jpg', noShipping: true },
 };
 
 exports.handler = async (event) => {
@@ -50,7 +52,9 @@ exports.handler = async (event) => {
     });
 
     // Costo di spedizione in base al paese scelto sul carrello (zone BRT, vedi lib/shipping.cjs)
-    const shippingCost = Math.round(getShippingCost(country) * 100);
+    // Salta la spedizione se TUTTI gli articoli nel carrello sono esenti (es. prodotto di test).
+    const allExemptFromShipping = items.every((item) => PRICES[item.handle]?.noShipping);
+    const shippingCost = allExemptFromShipping ? 0 : Math.round(getShippingCost(country) * 100);
     if (shippingCost > 0) {
       line_items.push({
         price_data: {

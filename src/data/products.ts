@@ -19,6 +19,9 @@ export interface Product {
   // il bottone scarica direttamente il file indicato in downloadUrl.
   digital?: boolean;
   downloadUrl?: string;
+  // Se true, questo prodotto non fa scattare il costo di spedizione quando è
+  // l'unico tipo di articolo nel carrello (usato per il prodotto di test checkout).
+  noShipping?: boolean;
 }
 
 // SEGNAPOSTO — sostituisci img/img2/description con i tuoi dati reali quando li mandi.
@@ -42,7 +45,7 @@ export const products: Product[] = [
     type: 'CD',
     available: true,
     img: '/products/cd.jpg',
-    description: '"TROPPO LARGO" — il primo album da solista di XL, interamente autoprodotto.\n\nTracklist:\n1. Troppo Largo\n2. Polemiche\n3. Schh\n4. Sacra\n5. Il Contrario\n6. Il Motivo\n7. Ridi Ridi\n8. Il Vizio\n9. La Spinta\n10. Segno\n11. Il Segreto\n12. Detto Fatto\n13. Via Vai\n14. Chi Lo Fa\n15. Rap Chanel\n\nL\'anteprima del CD è un mock-up digitale, il prodotto finale potrebbe differire da questa anteprima.',
+    description: '"TROPPO LARGO" — il primo album da solista di XL, interamente autoprodotto.\n\nTracklist:\n1. Rap Chanel\n2. Troppo Largo\n3. Il Motivo\n4. Sacra\n5. Schh\n6. Il Segreto\n7. Polemiche\n8. Ridi Ridi\n9. La Spinta\n10. Il Vizio\n11. Segno\n12. Il Contrario\n13. Detto Fatto\n14. Via Vai\n15. Chi Lo Fa\n\nL\'anteprima del CD è un mock-up digitale, il prodotto finale potrebbe differire da questa anteprima.',
   },
   {
     handle: 'xl-maglietta',
@@ -84,6 +87,16 @@ export const products: Product[] = [
     description: 'Versione Digitale Scaricabile',
     digital: true,
     downloadUrl: '/downloads/XL-TRPLRG-2026.zip',
+  },
+  {
+    handle: 'xl-test-checkout',
+    title: 'TEST — Prodotto di verifica checkout (rimuovere dopo test)',
+    price: 1,
+    type: 'Test',
+    available: true,
+    img: '/products/album-digitale.jpg',
+    description: 'Prodotto temporaneo per testare Stripe, PayPal e Google Pay end-to-end. Non visibile nel negozio pubblico (non è in homepageOrder). Rimuovere da products.ts a test completato.',
+    noShipping: true,
   },
 ];
 

@@ -15,7 +15,8 @@ export default function CartPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const shippingCost = getShippingCost(country);
+  const allExemptFromShipping = items.length > 0 && items.every(i => i.product.noShipping);
+  const shippingCost = allExemptFromShipping ? 0 : getShippingCost(country);
   const grandTotal = total + shippingCost;
 
   const handleWalletSuccess = (orderId: string, buyer?: { name: string; address: string }) => {
