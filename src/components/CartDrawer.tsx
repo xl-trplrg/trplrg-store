@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../data/products';
 import { CloseIcon, PlusIcon, MinusIcon, TrashIcon } from './Icons';
@@ -6,6 +7,15 @@ import './CartDrawer.css';
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, setQty, remove, total } = useCart();
+
+  // Blocca lo scroll della pagina sotto mentre il carrello è aperto, altrimenti
+  // su mobile si può scorrere il contenuto dietro all'overlay.
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   return (
     <>

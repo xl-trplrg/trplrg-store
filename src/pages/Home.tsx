@@ -10,8 +10,8 @@ export default function Home() {
   return (
     <div className="home">
       <div className="home__grid container">
-        {featured.map(p => (
-          <ProductCard key={p.handle} product={p} />
+        {featured.map((p, idx) => (
+          <ProductCard key={p.handle} product={p} priority={idx < 4} />
         ))}
       </div>
 

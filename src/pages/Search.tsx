@@ -10,9 +10,10 @@ export default function Search() {
 
   const results = query
     ? products.filter(p =>
-        p.title.toLowerCase().includes(query) ||
+        p.handle !== 'xl-test-checkout' &&
+        (p.title.toLowerCase().includes(query) ||
         p.type.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query)
+        p.description.toLowerCase().includes(query))
       )
     : [];
 

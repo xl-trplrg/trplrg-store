@@ -15,7 +15,7 @@ export default function CartPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const allExemptFromShipping = items.length > 0 && items.every(i => i.product.noShipping);
+  const allExemptFromShipping = items.length > 0 && items.every(i => i.product.noShipping || i.product.digital);
   const shippingCost = allExemptFromShipping ? 0 : getShippingCost(country);
   const grandTotal = total + shippingCost;
 
@@ -138,7 +138,7 @@ export default function CartPage() {
           </button>
 
           <div className="cart-page__wallets-wrap">
-            <PayPalButton items={items} total={grandTotal} onSuccess={handleWalletSuccess} />
+            <PayPalButton items={items} total={grandTotal} shippingCost={shippingCost} onSuccess={handleWalletSuccess} />
             <GooglePayButton items={items} total={grandTotal} country={country} onSuccess={handleWalletSuccess} />
           </div>
 

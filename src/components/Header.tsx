@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { SearchIcon, CartIcon, UserIcon, MenuIcon, CloseIcon, InstagramIcon } from './Icons';
@@ -10,6 +10,15 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
+
+  // Stesso motivo del carrello: senza questo, il menu mobile aperto lascia
+  // scorrere la pagina sotto.
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();

@@ -53,9 +53,11 @@ export const shippingCountries: ShippingCountry[] = [
   // BRT International Air Zona A
   { code: 'US', label: 'Stati Uniti', cost: 28 },
   { code: 'CA', label: 'Canada', cost: 28 },
-
-  // Resto del mondo — fascia unica
-  { code: 'ROW', label: 'Resto del mondo', cost: 35 },
+  // "Resto del mondo" rimosso: Stripe accetta solo indirizzi nei paesi elencati
+  // sopra (allowed_countries in create-checkout-session.cjs) — un cliente che
+  // avesse selezionato ROW sarebbe arrivato su Stripe senza poter completare
+  // l'ordine. Se aggiungi altri paesi, aggiungili qui E nella lista
+  // allowed_countries lato server, altrimenti succede di nuovo.
 ];
 
 export function getShippingCost(countryCode: string): number {

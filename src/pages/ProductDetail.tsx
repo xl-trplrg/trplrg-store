@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProduct, products, formatPrice } from '../data/products';
 import { useCart } from '../context/CartContext';
@@ -19,6 +19,20 @@ export default function ProductDetail() {
   const [showQuickPaypal, setShowQuickPaypal] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
+
+  // React Router non smonta il componente quando si naviga da un prodotto
+  // all'altro (cambia solo il parametro handle) — senza questo reset, stati
+  // come l'immagine selezionata o la taglia scelta resterebbero quelli del
+  // prodotto precedente, causando ad esempio un'immagine rotta se il nuovo
+  // prodotto ha meno foto di quello lasciato.
+  useEffect(() => {
+    setQty(1);
+    setActiveImg(0);
+    setSelectedSize(null);
+    setSizeError(false);
+    setShowQuickPaypal(false);
+    setDownloadError('');
+  }, [handle]);
 
   if (!product) {
     return (
@@ -152,7 +166,7 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {product.available && !product.digital && (
+          {product.available && !product.digital && product.noShipping && (
             <div className="product-detail__quick-pay">
               {showQuickPaypal ? (
                 <PayPalButton

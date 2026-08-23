@@ -78,9 +78,17 @@ async function generateOrderId(items) {
       }
       next = current + 1;
       await store.setJSON(dateKey, next);
-      // piccola pausa casuale prima di considerare il valore definitivo,
-      // così un'eventuale scrittura concorrente nello stesso istante ha
-      // la possibilità di essere vista al tentativo successivo
+
+      // Verifica che nessuno abbia scritto sopra di noi nel frattempo.
+      // Se il valore letto ora è quello che abbiamo appena scritto, ci fermiamo
+      // qui — altrimenti c'è stata una scrittura concorrente e riproviamo.
+      try {
+        const verify = await store.get(dateKey, { type: 'json' });
+        if (verify === next) break;
+      } catch {
+        break;
+      }
+
       if (attempt < 2) {
         await new Promise((r) => setTimeout(r, 30 + Math.floor(Math.random() * 50)));
       }
