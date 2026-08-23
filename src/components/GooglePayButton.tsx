@@ -124,6 +124,7 @@ export default function GooglePayButton({ items, total, country, onSuccess }: Pr
             currencyCode: 'EUR',
             countryCode: 'IT',
           },
+          emailRequired: true,
           shippingAddressRequired: true,
           shippingAddressParameters: { phoneNumberRequired: false },
         });
@@ -145,6 +146,7 @@ export default function GooglePayButton({ items, total, country, onSuccess }: Pr
             tokenId: stripeToken.id,
             items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity, size: i.size })),
             country,
+            email: paymentData.email,
           }),
         });
 

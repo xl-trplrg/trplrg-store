@@ -27,7 +27,7 @@ exports.handler = async (event) => {
 
   try {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-    const { tokenId, items, country } = JSON.parse(event.body);
+    const { tokenId, items, country, email } = JSON.parse(event.body);
 
     if (!tokenId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Token mancante' }) };
@@ -57,6 +57,9 @@ exports.handler = async (event) => {
       },
       confirm: true,
       automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+      // Stripe manda automaticamente la ricevuta a questo indirizzo se valorizzato
+      // (nessuna impostazione aggiuntiva richiesta lato dashboard per questo campo specifico).
+      receipt_email: typeof email === 'string' && email.includes('@') ? email : undefined,
     });
 
     if (paymentIntent.status === 'succeeded') {
