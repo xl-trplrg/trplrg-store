@@ -61,15 +61,30 @@ async function generateOrderId(items) {
   let progressive = '000';
   try {
     const store = getOrderCountersStore();
-    let current = 0;
-    try {
-      const existing = await store.get(dateKey, { type: 'json' });
-      if (typeof existing === 'number') current = existing;
-    } catch {
-      current = 0;
+    // Mitigazione race condition: se due acquisti arrivano nello stesso istante,
+    // rileggiamo il valore fresco ad ogni tentativo invece di fidarci di una
+    // lettura fatta prima. Non è un lock atomico vero (richiederebbe un database
+    // con transazioni), ma per pochi ordini/giorno riduce il rischio di ID
+    // duplicati quasi a zero. In ogni caso un eventuale ID duplicato è solo
+    // un problema di etichetta leggibile: non influisce sull'addebito reale.
+    let next = 1;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let current = 0;
+      try {
+        const existing = await store.get(dateKey, { type: 'json' });
+        if (typeof existing === 'number') current = existing;
+      } catch {
+        current = 0;
+      }
+      next = current + 1;
+      await store.setJSON(dateKey, next);
+      // piccola pausa casuale prima di considerare il valore definitivo,
+      // così un'eventuale scrittura concorrente nello stesso istante ha
+      // la possibilità di essere vista al tentativo successivo
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 30 + Math.floor(Math.random() * 50)));
+      }
     }
-    const next = current + 1;
-    await store.setJSON(dateKey, next);
     progressive = String(next).padStart(3, '0');
   } catch (err) {
     // Logghiamo l'errore vero nei log della function Netlify (Netlify UI -> Functions -> logs)

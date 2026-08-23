@@ -11,14 +11,7 @@ const { getShippingCost } = require('./lib/shipping.cjs');
 
 // Stessa fonte di verità prezzi usata da create-checkout-session.cjs.
 // Se aggiorni un prezzo in un posto, aggiornalo anche nell'altro.
-const PRICES = {
-  'xl-vinile': { name: 'TROPPO LARGO Vinyl', price: 30 },
-  'xl-cd': { name: 'TROPPO LARGO CD Edition', price: 20 },
-  'xl-maglietta': { name: 'YATP T-Shirt Bianca', price: 25 },
-  'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40 },
-  // TEST — rimuovere insieme alla voce in src/data/products.ts a test completato.
-  'xl-test-checkout': { name: 'TEST — Prodotto di verifica checkout', price: 1, noShipping: true },
-};
+const { PRICES } = require('./lib/prices.cjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {

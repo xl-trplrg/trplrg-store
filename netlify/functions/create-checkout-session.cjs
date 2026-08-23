@@ -12,14 +12,7 @@ const { getShippingCost } = require('./lib/shipping.cjs');
 // IMPORTANTE: questa lista prezzi è la fonte di verità server-side.
 // Deve restare identica a src/data/products.ts (handle + price), altrimenti i totali non torneranno.
 // Quando aggiorni un prezzo in products.ts, aggiornalo anche qui.
-const PRICES = {
-  'xl-vinile': { name: 'TROPPO LARGO Vinyl', price: 30, img: '/products/vinile.jpg' },
-  'xl-cd': { name: 'TROPPO LARGO CD Edition', price: 20, img: '/products/cd.jpg' },
-  'xl-maglietta': { name: 'YATP T-Shirt Bianca', price: 25, img: '/products/tshirt-front.jpg' },
-  'xl-felpa': { name: 'TROPPO LARGO - Hoodie', price: 40, img: '/products/hoodie-front.jpg' },
-  // TEST — rimuovere insieme alla voce in src/data/products.ts a test completato.
-  'xl-test-checkout': { name: 'TEST — Prodotto di verifica checkout', price: 1, img: '/products/album-digitale.jpg', noShipping: true },
-};
+const { PRICES } = require('./lib/prices.cjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {

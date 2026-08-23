@@ -15,6 +15,7 @@ interface Buyer {
 interface Props {
   items: CartItem[];
   total: number;
+  shippingCost?: number;
   onSuccess: (orderId: string, buyer?: Buyer) => void;
 }
 
@@ -23,7 +24,7 @@ interface Props {
 // (usa "Live" quando sei pronto a incassare davvero, "Sandbox" per fare prove).
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'YOUR_PAYPAL_CLIENT_ID';
 
-export default function PayPalButton({ items, total, onSuccess }: Props) {
+export default function PayPalButton({ items, total, shippingCost = 0, onSuccess }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,7 +52,11 @@ export default function PayPalButton({ items, total, onSuccess }: Props) {
                         value: total.toFixed(2),
                         currency_code: 'EUR',
                         breakdown: {
-                          item_total: { value: total.toFixed(2), currency_code: 'EUR' },
+                          // PayPal richiede che item_total sia ESATTAMENTE la somma degli
+                          // unit_amount degli items sotto — la spedizione va nel suo campo
+                          // separato, altrimenti PayPal può rifiutare l'ordine.
+                          item_total: { value: (total - shippingCost).toFixed(2), currency_code: 'EUR' },
+                          shipping: { value: shippingCost.toFixed(2), currency_code: 'EUR' },
                         },
                       },
                       items: items.map(i => ({
@@ -110,10 +115,18 @@ export default function PayPalButton({ items, total, onSuccess }: Props) {
     if (window.paypal) {
       renderButtons();
     } else {
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&disable-funding=card,credit,mybank,sepa,sofort,venmo,paylater`;
-      script.onload = renderButtons;
-      document.body.appendChild(script);
+      const existing = document.querySelector<HTMLScriptElement>('script[data-paypal-sdk]');
+      if (existing) {
+        // Lo script è già in caricamento da un mount precedente del componente:
+        // aspettiamo che finisca invece di aggiungerne un altro identico.
+        existing.addEventListener('load', renderButtons, { once: true });
+      } else {
+        const script = document.createElement('script');
+        script.dataset.paypalSdk = 'true';
+        script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=EUR&disable-funding=card,credit,mybank,sepa,sofort,venmo,paylater`;
+        script.onload = renderButtons;
+        document.body.appendChild(script);
+      }
     }
   }, [items, total, onSuccess]);
 

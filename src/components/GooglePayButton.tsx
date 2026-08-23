@@ -165,10 +165,16 @@ export default function GooglePayButton({ items, total, country, onSuccess }: Pr
     if (window.google) {
       init();
     } else {
-      const script = document.createElement('script');
-      script.src = 'https://pay.google.com/gp/p/js/pay.js';
-      script.onload = init;
-      document.body.appendChild(script);
+      const existing = document.querySelector<HTMLScriptElement>('script[data-googlepay-sdk]');
+      if (existing) {
+        existing.addEventListener('load', init, { once: true });
+      } else {
+        const script = document.createElement('script');
+        script.dataset.googlepaySdk = 'true';
+        script.src = 'https://pay.google.com/gp/p/js/pay.js';
+        script.onload = init;
+        document.body.appendChild(script);
+      }
     }
 
     return () => {

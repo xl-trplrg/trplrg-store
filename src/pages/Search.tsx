@@ -37,7 +37,7 @@ export default function Search() {
       ) : q ? (
         <div className="search-page__empty">
           <p>Nessun risultato. Prova con un altro termine.</p>
-          <Link to="/catalog" className="search-page__link">Vai al catalogo</Link>
+          <Link to="/" className="search-page__link">Vai al catalogo</Link>
         </div>
       ) : (
         <p className="search-page__hint">Digita qualcosa nella barra di ricerca.</p>

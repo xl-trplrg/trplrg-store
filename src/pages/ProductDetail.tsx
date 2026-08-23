@@ -24,7 +24,7 @@ export default function ProductDetail() {
     return (
       <div className="product-detail__not-found container">
         <h1>Pagina non trovata</h1>
-        <Link to="/catalog" className="product-detail__back">Torna al catalogo</Link>
+        <Link to="/" className="product-detail__back">Torna al catalogo</Link>
       </div>
     );
   }
@@ -158,7 +158,16 @@ export default function ProductDetail() {
                 <PayPalButton
                   items={[{ product, quantity: qty, size: selectedSize ?? undefined }]}
                   total={product.price * qty}
-                  onSuccess={() => navigate('/')}
+                  onSuccess={(orderId, buyer) => {
+                    navigate('/ordine-confermato', {
+                      state: {
+                        orderId,
+                        items: [{ name: product.title, quantity: qty, amount: product.price * qty, image: product.img }],
+                        total: product.price * qty,
+                        buyer: buyer ?? null,
+                      },
+                    });
+                  }}
                 />
               ) : (
                 <button
