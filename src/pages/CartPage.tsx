@@ -20,7 +20,7 @@ export default function CartPage() {
   const grandTotal = total + shippingCost;
 
   const handleWalletSuccess = (orderId: string, buyer?: { name: string; address: string }) => {
-    navigate('/ordine-confermato', {
+    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
       state: {
         orderId,
         items: items.map(i => ({

@@ -147,6 +147,7 @@ export default function GooglePayButton({ items, total, country, onSuccess }: Pr
             items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity, size: i.size })),
             country,
             email: paymentData.email,
+            buyer,
           }),
         });
 

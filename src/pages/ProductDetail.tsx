@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import ProductCard from '../components/ProductCard';
 import PayPalButton from '../components/PayPalButton';
 import { PlusIcon, MinusIcon } from '../components/Icons';
+import { usePageMeta } from '../hooks/usePageMeta';
 import './ProductDetail.css';
 
 export default function ProductDetail() {
@@ -12,6 +13,12 @@ export default function ProductDetail() {
   const product = handle ? getProduct(handle) : undefined;
   const { add } = useCart();
   const navigate = useNavigate();
+
+  usePageMeta({
+    title: product?.title || 'Prodotto',
+    description: product?.description?.split('\n')[0] || undefined,
+    image: product?.img ? `https://trplrg.com${product.img}` : undefined,
+  });
   const [qty, setQty] = useState(1);
   const [activeImg, setActiveImg] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -69,7 +76,7 @@ export default function ProductDetail() {
       link.click();
       link.remove();
 
-      navigate('/ordine-confermato', {
+      navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
         state: {
           orderId,
           items: [{ name: product.title, quantity: 1, amount: 0, image: product.img, downloadUrl: product.downloadUrl }],
@@ -173,7 +180,7 @@ export default function ProductDetail() {
                   items={[{ product, quantity: qty, size: selectedSize ?? undefined }]}
                   total={product.price * qty}
                   onSuccess={(orderId, buyer) => {
-                    navigate('/ordine-confermato', {
+                    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
                       state: {
                         orderId,
                         items: [{ name: product.title, quantity: qty, amount: product.price * qty, image: product.img }],

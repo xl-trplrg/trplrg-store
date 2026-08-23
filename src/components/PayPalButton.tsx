@@ -70,20 +70,6 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
               },
               onApprove: async (_data: unknown, actions: any) => {
                 const details = await actions.order.capture();
-                let orderId = '';
-                try {
-                  const res = await fetch('/.netlify/functions/generate-order-id', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity })),
-                    }),
-                  });
-                  const data = await res.json();
-                  orderId = data.orderId || '';
-                } catch {
-                  orderId = '';
-                }
 
                 let buyer: Buyer | undefined;
                 try {
@@ -102,6 +88,23 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
                   }
                 } catch {
                   buyer = undefined;
+                }
+
+                let orderId = '';
+                try {
+                  const res = await fetch('/.netlify/functions/generate-order-id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity })),
+                      buyer,
+                      total,
+                    }),
+                  });
+                  const data = await res.json();
+                  orderId = data.orderId || '';
+                } catch {
+                  orderId = '';
                 }
 
                 onSuccess(orderId, buyer);

@@ -27,27 +27,47 @@ export default function OrderConfirmation() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const orderIdParam = searchParams.get('order_id');
   const stateData = (location.state as OrderData | undefined) ?? null;
 
   const [order, setOrder] = useState<OrderData | null>(stateData);
-  const [loading, setLoading] = useState(!stateData && !!sessionId);
+  const [loading, setLoading] = useState(!stateData && !!(sessionId || orderIdParam));
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (stateData || !sessionId) return;
-    setLoading(true);
-    fetch(`/.netlify/functions/get-order-details?session_id=${encodeURIComponent(sessionId)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setOrder(data);
-        }
-      })
-      .catch(() => setError('Impossibile recuperare i dettagli dell\'ordine.'))
-      .finally(() => setLoading(false));
-  }, [sessionId, stateData]);
+    if (stateData) return;
+    if (sessionId) {
+      setLoading(true);
+      fetch(`/.netlify/functions/get-order-details?session_id=${encodeURIComponent(sessionId)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            setError(data.error);
+          } else {
+            setOrder(data);
+          }
+        })
+        .catch(() => setError('Impossibile recuperare i dettagli dell\'ordine.'))
+        .finally(() => setLoading(false));
+      return;
+    }
+    if (orderIdParam) {
+      // Caso PayPal/Google Pay dopo un refresh: non c'è un session_id Stripe,
+      // recuperiamo la copia salvata al momento del pagamento.
+      setLoading(true);
+      fetch(`/.netlify/functions/get-order-by-id?order_id=${encodeURIComponent(orderIdParam)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            setError(data.error);
+          } else {
+            setOrder(data);
+          }
+        })
+        .catch(() => setError('Impossibile recuperare i dettagli dell\'ordine.'))
+        .finally(() => setLoading(false));
+    }
+  }, [sessionId, orderIdParam, stateData]);
 
   if (loading) {
     return (

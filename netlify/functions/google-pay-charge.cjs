@@ -8,6 +8,7 @@
 const Stripe = require('stripe');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
+const { saveOrderDetails } = require('./lib/orders-store.cjs');
 
 // Stessa fonte di verità prezzi usata da create-checkout-session.cjs.
 // Se aggiorni un prezzo in un posto, aggiornalo anche nell'altro.
@@ -20,7 +21,7 @@ exports.handler = async (event) => {
 
   try {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-    const { tokenId, items, country, email } = JSON.parse(event.body);
+    const { tokenId, items, country, email, buyer } = JSON.parse(event.body);
 
     if (!tokenId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Token mancante' }) };
@@ -62,6 +63,27 @@ exports.handler = async (event) => {
       } catch {
         // il pagamento è già riuscito, non blocchiamo la risposta per un problema di order-id
       }
+
+      // Salviamo una copia dei dettagli ordine, così la pagina di conferma
+      // sopravvive anche a un refresh (Google Pay non passa per un redirect
+      // esterno come Stripe Checkout, quindi non c'è un session_id da riusare).
+      const orderItems = items.map((item) => {
+        const known = PRICES[item.handle];
+        return {
+          name: item.size ? `${known?.name || item.handle} — Taglia ${item.size}` : (known?.name || item.handle),
+          quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+          amount: (known?.price || 0) * Math.max(1, parseInt(item.quantity, 10) || 1),
+          image: known?.img || null,
+          downloadUrl: known?.downloadUrl || null,
+        };
+      });
+      await saveOrderDetails(orderId, {
+        orderId,
+        items: orderItems,
+        total: amount,
+        buyer: buyer || null,
+      });
+
       return { statusCode: 200, body: JSON.stringify({ success: true, orderId }) };
     }
 
