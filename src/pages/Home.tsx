@@ -5,7 +5,7 @@ import './Home.css';
 
 export default function Home() {
   usePageMeta({
-    title: 'Store Ufficiale',
+    title: '',
     description: "L'album di debutto di XL. Vinile, CD e merch ufficiale.",
     image: 'https://trplrg.com/brand/logo.png',
   });

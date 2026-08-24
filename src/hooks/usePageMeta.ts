@@ -22,7 +22,7 @@ function setMetaTag(attr: 'name' | 'property', key: string, value: string) {
 // Google sia per le condivisioni su WhatsApp/Instagram di un prodotto specifico.
 export function usePageMeta({ title, description, image }: PageMeta) {
   useEffect(() => {
-    const fullTitle = `${title} — Troppo Largo`;
+    const fullTitle = title ? `${title} — Troppo Largo` : 'Troppo Largo';
     document.title = fullTitle;
     if (description) {
       setMetaTag('name', 'description', description);
