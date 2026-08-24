@@ -38,8 +38,11 @@ exports.handler = async (event) => {
       amount += known.price * Math.max(1, parseInt(item.quantity, 10) || 1);
     }
     const allExemptFromShipping = items.every((item) => PRICES[item.handle]?.noShipping);
+    const testOverride = items.every((item) => typeof PRICES[item.handle]?.testShippingOverride === 'number')
+      ? PRICES[items[0].handle].testShippingOverride
+      : undefined;
     if (!allExemptFromShipping) {
-      amount += getShippingCost(country);
+      amount += testOverride ?? getShippingCost(country);
     }
 
     const paymentIntent = await stripe.paymentIntents.create({

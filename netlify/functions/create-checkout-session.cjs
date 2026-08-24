@@ -47,7 +47,10 @@ exports.handler = async (event) => {
     // Costo di spedizione in base al paese scelto sul carrello (zone BRT, vedi lib/shipping.cjs)
     // Salta la spedizione se TUTTI gli articoli nel carrello sono esenti (es. prodotto di test).
     const allExemptFromShipping = items.every((item) => PRICES[item.handle]?.noShipping);
-    const shippingCost = allExemptFromShipping ? 0 : Math.round(getShippingCost(country) * 100);
+    const testOverride = items.every((item) => typeof PRICES[item.handle]?.testShippingOverride === 'number')
+      ? PRICES[items[0].handle].testShippingOverride
+      : undefined;
+    const shippingCost = allExemptFromShipping ? 0 : Math.round((testOverride ?? getShippingCost(country)) * 100);
     if (shippingCost > 0) {
       line_items.push({
         price_data: {

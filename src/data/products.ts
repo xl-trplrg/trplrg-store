@@ -22,6 +22,10 @@ export interface Product {
   // Se true, questo prodotto non fa scattare il costo di spedizione quando è
   // l'unico tipo di articolo nel carrello (usato per il prodotto di test checkout).
   noShipping?: boolean;
+  // Forza un costo di spedizione fisso invece di quello calcolato per paese,
+  // usato SOLO dal secondo prodotto di test per tenere basso il costo del
+  // test PayPal (che altrimenti userebbe la spedizione Italia normale, 6€+).
+  testShippingOverride?: number;
 }
 
 // SEGNAPOSTO — sostituisci img/img2/description con i tuoi dati reali quando li mandi.
@@ -97,6 +101,16 @@ export const products: Product[] = [
     img: '/products/album-digitale.jpg',
     description: 'Prodotto temporaneo per testare Stripe, PayPal e Google Pay end-to-end. Non visibile nel negozio pubblico (non è in homepageOrder). Rimuovere da products.ts a test completato.',
     noShipping: true,
+  },
+  {
+    handle: 'xl-test-checkout-spedizione',
+    title: 'TEST — Verifica checkout CON spedizione (rimuovere dopo test)',
+    price: 1,
+    type: 'Test',
+    available: true,
+    img: '/products/album-digitale.jpg',
+    description: 'Come il prodotto test sopra, ma con 1€ di spedizione fissa (invece dei 6€ normali Italia) per verificare a basso costo il fix del totale PayPal con spedizione. Rimuovere da products.ts a test completato.',
+    testShippingOverride: 1,
   },
 ];
 

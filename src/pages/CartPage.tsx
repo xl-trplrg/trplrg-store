@@ -16,7 +16,10 @@ export default function CartPage() {
   const navigate = useNavigate();
 
   const allExemptFromShipping = items.length > 0 && items.every(i => i.product.noShipping || i.product.digital);
-  const shippingCost = allExemptFromShipping ? 0 : getShippingCost(country);
+  const testShippingOverride = items.length > 0 && items.every(i => typeof i.product.testShippingOverride === 'number')
+    ? items[0].product.testShippingOverride
+    : undefined;
+  const shippingCost = allExemptFromShipping ? 0 : (testShippingOverride ?? getShippingCost(country));
   const grandTotal = total + shippingCost;
 
   const handleWalletSuccess = (orderId: string, buyer?: { name: string; address: string }) => {
