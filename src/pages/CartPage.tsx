@@ -114,16 +114,28 @@ export default function CartPage() {
             <span>{formatPrice(total)}</span>
           </div>
 
-          <label className="cart-page__summary-row cart-page__shipping-select">
-            <span>Spedizione</span>
-            <select value={country} onChange={e => setCountry(e.target.value)}>
-              {shippingCountries.map(c => (
-                <option key={c.code} value={c.code}>
-                  {c.label} (+{c.cost}€)
-                </option>
-              ))}
-            </select>
-          </label>
+          {allExemptFromShipping ? (
+            <div className="cart-page__summary-row">
+              <span>Spedizione</span>
+              <span>Gratis</span>
+            </div>
+          ) : testShippingOverride !== undefined ? (
+            <div className="cart-page__summary-row">
+              <span>Spedizione</span>
+              <span>{formatPrice(testShippingOverride)} (fissa — prodotto test)</span>
+            </div>
+          ) : (
+            <label className="cart-page__summary-row cart-page__shipping-select">
+              <span>Spedizione</span>
+              <select value={country} onChange={e => setCountry(e.target.value)}>
+                {shippingCountries.map(c => (
+                  <option key={c.code} value={c.code}>
+                    {c.label} (+{c.cost}€)
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div className="cart-page__summary-total">
             <span>Totale</span>
