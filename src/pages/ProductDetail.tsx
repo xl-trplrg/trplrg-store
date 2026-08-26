@@ -23,7 +23,6 @@ export default function ProductDetail() {
   const [activeImg, setActiveImg] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
-  const [showQuickPaypal, setShowQuickPaypal] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
 
@@ -37,7 +36,6 @@ export default function ProductDetail() {
     setActiveImg(0);
     setSelectedSize(null);
     setSizeError(false);
-    setShowQuickPaypal(false);
     setDownloadError('');
   }, [handle]);
 
@@ -175,7 +173,7 @@ export default function ProductDetail() {
 
           {product.available && !product.digital && (
             <div className="product-detail__quick-pay">
-              {showQuickPaypal ? (
+              {!product.sizes || selectedSize ? (
                 <PayPalButton
                   items={[{ product, quantity: qty, size: selectedSize ?? undefined }]}
                   total={product.price * qty}
@@ -192,18 +190,7 @@ export default function ProductDetail() {
                   }}
                 />
               ) : (
-                <button
-                  className="product-detail__paypal-cta"
-                  onClick={() => {
-                    if (product.sizes && !selectedSize) {
-                      setSizeError(true);
-                      return;
-                    }
-                    setShowQuickPaypal(true);
-                  }}
-                >
-                  <span className="product-detail__paypal-logo">PayPal</span>
-                </button>
+                <p className="product-detail__paypal-hint">Seleziona una taglia per pagare con PayPal</p>
               )}
               <button
                 className="product-detail__more-options"
