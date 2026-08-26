@@ -202,7 +202,7 @@ export default function ProductDetail() {
                     setShowQuickPaypal(true);
                   }}
                 >
-                  Paga con <span className="product-detail__paypal-logo">PayPal</span>
+                  <span className="product-detail__paypal-logo">PayPal</span>
                 </button>
               )}
               <button
