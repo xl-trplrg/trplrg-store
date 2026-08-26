@@ -173,12 +173,13 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {product.available && !product.digital && product.noShipping && (
+          {product.available && !product.digital && (
             <div className="product-detail__quick-pay">
               {showQuickPaypal ? (
                 <PayPalButton
                   items={[{ product, quantity: qty, size: selectedSize ?? undefined }]}
                   total={product.price * qty}
+                  dynamicShipping={!product.noShipping}
                   onSuccess={(orderId, buyer) => {
                     navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
                       state: {

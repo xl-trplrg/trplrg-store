@@ -16,6 +16,11 @@ interface Props {
   items: CartItem[];
   total: number;
   shippingCost?: number;
+  // Se true, ignora shippingCost/total fissi: lascia che sia PayPal a chiedere
+  // l'indirizzo al cliente dentro al suo popup, e ricalcola la spedizione al volo
+  // in base al paese scelto lì (usato dal quick-buy sulla pagina prodotto, dove
+  // non c'è nessun menu paese sul sito).
+  dynamicShipping?: boolean;
   onSuccess: (orderId: string, buyer?: Buyer) => void;
 }
 
@@ -24,8 +29,11 @@ interface Props {
 // (usa "Live" quando sei pronto a incassare davvero, "Sandbox" per fare prove).
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'YOUR_PAYPAL_CLIENT_ID';
 
-export default function PayPalButton({ items, total, shippingCost = 0, onSuccess }: Props) {
+export default function PayPalButton({ items, total, shippingCost = 0, dynamicShipping = false, onSuccess }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Tiene traccia della spedizione più aggiornata scelta dentro al popup PayPal
+  // (parte da 0 finché il cliente non ha ancora scelto un paese).
+  const liveShippingRef = useRef(0);
 
   useEffect(() => {
     if (!containerRef.current || items.length === 0) return;
@@ -45,18 +53,26 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
             .Buttons({
               style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 45 },
               createOrder: (_data: unknown, actions: any) => {
+                const itemTotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+                // In modalità dinamica partiamo da spedizione 0: verrà aggiornata
+                // da onShippingAddressChange non appena il cliente sceglie il paese
+                // dentro al popup PayPal, prima che possa confermare il pagamento.
+                const initialShipping = dynamicShipping ? 0 : shippingCost;
+                liveShippingRef.current = initialShipping;
+
                 return actions.order.create({
                   purchase_units: [
                     {
+                      reference_id: 'default',
                       amount: {
-                        value: total.toFixed(2),
+                        value: (itemTotal + initialShipping).toFixed(2),
                         currency_code: 'EUR',
                         breakdown: {
                           // PayPal richiede che item_total sia ESATTAMENTE la somma degli
                           // unit_amount degli items sotto — la spedizione va nel suo campo
                           // separato, altrimenti PayPal può rifiutare l'ordine.
-                          item_total: { value: (total - shippingCost).toFixed(2), currency_code: 'EUR' },
-                          shipping: { value: shippingCost.toFixed(2), currency_code: 'EUR' },
+                          item_total: { value: itemTotal.toFixed(2), currency_code: 'EUR' },
+                          shipping: { value: initialShipping.toFixed(2), currency_code: 'EUR' },
                         },
                       },
                       items: items.map(i => ({
@@ -68,6 +84,38 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
                   ],
                 });
               },
+              // Chiamato da PayPal appena il cliente sceglie/cambia il paese di
+              // spedizione DENTRO al suo popup (nessun menu sul nostro sito).
+              // Ricalcoliamo la spedizione vera e aggiorniamo il totale prima che
+              // possa confermare il pagamento.
+              onShippingAddressChange: dynamicShipping
+                ? async (data: any, actions: any) => {
+                    const country = data?.shippingAddress?.countryCode;
+                    if (!country) return actions.reject();
+                    try {
+                      const res = await fetch(`/.netlify/functions/get-shipping-cost?country=${encodeURIComponent(country)}`);
+                      const { shippingCost: liveCost } = await res.json();
+                      liveShippingRef.current = liveCost;
+                      const itemTotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+                      return actions.order.patch([
+                        {
+                          op: 'replace',
+                          path: "/purchase_units/@reference_id=='default'/amount",
+                          value: {
+                            currency_code: 'EUR',
+                            value: (itemTotal + liveCost).toFixed(2),
+                            breakdown: {
+                              item_total: { value: itemTotal.toFixed(2), currency_code: 'EUR' },
+                              shipping: { value: liveCost.toFixed(2), currency_code: 'EUR' },
+                            },
+                          },
+                        },
+                      ]);
+                    } catch {
+                      return actions.reject();
+                    }
+                  }
+                : undefined,
               onApprove: async (_data: unknown, actions: any) => {
                 const details = await actions.order.capture();
 
@@ -92,13 +140,15 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
 
                 let orderId = '';
                 try {
+                  const itemTotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+                  const finalTotal = dynamicShipping ? itemTotal + liveShippingRef.current : total;
                   const res = await fetch('/.netlify/functions/generate-order-id', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity })),
                       buyer,
-                      total,
+                      total: finalTotal,
                     }),
                   });
                   const data = await res.json();
@@ -131,7 +181,7 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
         document.body.appendChild(script);
       }
     }
-  }, [items, total, onSuccess]);
+  }, [items, total, dynamicShipping, onSuccess]);
 
   return <div ref={containerRef} className="paypal-button-container" />;
 }
