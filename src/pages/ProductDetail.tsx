@@ -198,19 +198,29 @@ export default function ProductDetail() {
 
           {product.available && !product.digital && (
             <div className="product-detail__quick-pay">
-              <PayPalButton
-                items={quickPayItems}
-                total={product.price * qty}
-                dynamicShipping={!product.noShipping}
-                onValidate={() => {
-                  if (product.sizes && !selectedSize) {
-                    setSizeError(true);
-                    return false;
-                  }
-                  return true;
-                }}
-                onSuccess={handleQuickPaypalSuccess}
-              />
+              <div className="product-detail__paypal-wrap">
+                <PayPalButton
+                  items={quickPayItems}
+                  total={product.price * qty}
+                  dynamicShipping={!product.noShipping}
+                  onValidate={() => {
+                    if (product.sizes && !selectedSize) {
+                      setSizeError(true);
+                      return false;
+                    }
+                    return true;
+                  }}
+                  onSuccess={handleQuickPaypalSuccess}
+                />
+                {product.sizes && !selectedSize && (
+                  <button
+                    type="button"
+                    aria-label="Seleziona una taglia prima di pagare con PayPal"
+                    className="product-detail__size-guard"
+                    onClick={() => setSizeError(true)}
+                  />
+                )}
+              </div>
               <button
                 className="product-detail__more-options"
                 onClick={() => {

@@ -212,6 +212,24 @@
   margin-top: 10px;
 }
 
+.product-detail__paypal-wrap {
+  position: relative;
+}
+
+/* Copre esattamente il bottone PayPal quando manca la taglia — è ancorato allo
+   stesso contenitore relative del bottone, quindi si muove sempre insieme a lui
+   (scroll, zoom, resize), non può mai disallinearsi. Il click non raggiunge mai
+   il bottone vero sotto, quindi il popup PayPal non si apre nemmeno per un istante. */
+.product-detail__size-guard {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
 .product-detail__paypal-cta {
   width: 100%;
   height: 45px;
