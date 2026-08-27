@@ -140,7 +140,29 @@ export default function ProductDetail() {
         <div className="product-detail__info">
           <h1 className="product-detail__title">{product.title}</h1>
           <p className="product-detail__price">{formatPrice(product.price)}</p>
-          <p className="product-detail__desc">{product.description}</p>
+          {(() => {
+            const desc = product.description;
+            const trackMatch = desc.match(/Tracklist:\n([\s\S]*?)(?:\n\n|$)/);
+            if (!trackMatch) {
+              return <p className="product-detail__desc">{desc}</p>;
+            }
+            const intro = desc.slice(0, trackMatch.index).trim();
+            const tracks = trackMatch[1].split('\n').filter(Boolean);
+            const outro = desc.slice((trackMatch.index ?? 0) + trackMatch[0].length).trim();
+            return (
+              <>
+                {intro && <p className="product-detail__desc">{intro}</p>}
+                <p className="product-detail__tracklist-label">Tracklist</p>
+                <ol className="product-detail__tracklist">
+                  {tracks.map((t, i) => {
+                    const track = t.replace(/^\d+\.\s*/, '');
+                    return <li key={i}>{track}</li>;
+                  })}
+                </ol>
+                {outro && <p className="product-detail__desc">{outro}</p>}
+              </>
+            );
+          })()}
 
           {product.sizes && (
             <div className="product-detail__sizes">
