@@ -213,11 +213,15 @@ export default function ProductDetail() {
                   onSuccess={handleQuickPaypalSuccess}
                 />
                 {product.sizes && !selectedSize && (
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     aria-label="Seleziona una taglia prima di pagare con PayPal"
                     className="product-detail__size-guard"
                     onClick={() => setSizeError(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setSizeError(true);
+                    }}
                   />
                 )}
               </div>
