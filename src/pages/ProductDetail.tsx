@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProduct, products, formatPrice } from '../data/products';
 import { useCart } from '../context/CartContext';
@@ -38,6 +38,31 @@ export default function ProductDetail() {
     setSizeError(false);
     setDownloadError('');
   }, [handle]);
+
+  // Riferimento stabile: se ricreassimo questo array ad ogni render (come
+  // faceva prima), l'effetto dentro PayPalButton lo vedrebbe "cambiato" anche
+  // quando in realtà nulla di rilevante è cambiato, e continuerebbe a smontare
+  // e ricostruire il bottone PayPal — a volte lasciandolo vuoto per una race
+  // condition tra due ricostruzioni sovrapposte.
+  const quickPayItems = useMemo(
+    () => (product ? [{ product, quantity: qty, size: selectedSize ?? undefined }] : []),
+    [product, qty, selectedSize]
+  );
+
+  const handleQuickPaypalSuccess = useCallback(
+    (orderId: string, buyer?: { name: string; address: string }) => {
+      if (!product) return;
+      navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
+        state: {
+          orderId,
+          items: [{ name: product.title, quantity: qty, amount: product.price * qty, image: product.img }],
+          total: product.price * qty,
+          buyer: buyer ?? null,
+        },
+      });
+    },
+    [product, qty, navigate]
+  );
 
   if (!product) {
     return (
@@ -173,25 +198,19 @@ export default function ProductDetail() {
 
           {product.available && !product.digital && (
             <div className="product-detail__quick-pay">
-              {!product.sizes || selectedSize ? (
-                <PayPalButton
-                  items={[{ product, quantity: qty, size: selectedSize ?? undefined }]}
-                  total={product.price * qty}
-                  dynamicShipping={!product.noShipping}
-                  onSuccess={(orderId, buyer) => {
-                    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
-                      state: {
-                        orderId,
-                        items: [{ name: product.title, quantity: qty, amount: product.price * qty, image: product.img }],
-                        total: product.price * qty,
-                        buyer: buyer ?? null,
-                      },
-                    });
-                  }}
-                />
-              ) : (
-                <p className="product-detail__paypal-hint">Seleziona una taglia per pagare con PayPal</p>
-              )}
+              <PayPalButton
+                items={quickPayItems}
+                total={product.price * qty}
+                dynamicShipping={!product.noShipping}
+                onValidate={() => {
+                  if (product.sizes && !selectedSize) {
+                    setSizeError(true);
+                    return false;
+                  }
+                  return true;
+                }}
+                onSuccess={handleQuickPaypalSuccess}
+              />
               <button
                 className="product-detail__more-options"
                 onClick={() => {

@@ -21,6 +21,10 @@ interface Props {
   // in base al paese scelto lì (usato dal quick-buy sulla pagina prodotto, dove
   // non c'è nessun menu paese sul sito).
   dynamicShipping?: boolean;
+  // Chiamata appena il cliente clicca il bottone PayPal, PRIMA che si apra il
+  // popup. Se ritorna false, il popup non si apre — usato per bloccare l'acquisto
+  // finché non è stata scelta una taglia, senza bisogno di un secondo bottone finto.
+  onValidate?: () => boolean;
   onSuccess: (orderId: string, buyer?: Buyer) => void;
 }
 
@@ -29,7 +33,7 @@ interface Props {
 // (usa "Live" quando sei pronto a incassare davvero, "Sandbox" per fare prove).
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'YOUR_PAYPAL_CLIENT_ID';
 
-export default function PayPalButton({ items, total, shippingCost = 0, dynamicShipping = false, onSuccess }: Props) {
+export default function PayPalButton({ items, total, shippingCost = 0, dynamicShipping = false, onValidate, onSuccess }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Tiene traccia della spedizione più aggiornata scelta dentro al popup PayPal
   // (parte da 0 finché il cliente non ha ancora scelto un paese).
@@ -52,6 +56,12 @@ export default function PayPalButton({ items, total, shippingCost = 0, dynamicSh
           window.paypal
             .Buttons({
               style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 45 },
+              onClick: (_data: unknown, actions: any) => {
+                if (onValidate && !onValidate()) {
+                  return actions.reject();
+                }
+                return actions.resolve();
+              },
               createOrder: (_data: unknown, actions: any) => {
                 const itemTotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
                 // In modalità dinamica partiamo da spedizione 0: verrà aggiornata
@@ -79,6 +89,7 @@ export default function PayPalButton({ items, total, shippingCost = 0, dynamicSh
                         name: i.size ? `${i.product.title} — Taglia ${i.size}` : i.product.title,
                         unit_amount: { value: i.product.price.toFixed(2), currency_code: 'EUR' },
                         quantity: String(i.quantity),
+                        category: 'PHYSICAL_GOODS',
                       })),
                     },
                   ],
