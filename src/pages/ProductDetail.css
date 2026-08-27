@@ -95,32 +95,6 @@
   white-space: pre-line;
 }
 
-.product-detail__tracklist-label {
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
-}
-
-.product-detail__tracklist {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 24px;
-  list-style: decimal inside;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--muted);
-  margin-bottom: 24px;
-  padding: 0;
-}
-
-@media (max-width: 480px) {
-  .product-detail__tracklist {
-    grid-template-columns: 1fr;
-  }
-}
-
 .product-detail__sizes {
   margin: 20px 0;
 }

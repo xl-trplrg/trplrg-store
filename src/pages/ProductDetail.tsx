@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProduct, products, formatPrice } from '../data/products';
 import { useCart } from '../context/CartContext';
@@ -23,6 +23,7 @@ export default function ProductDetail() {
   const [activeImg, setActiveImg] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
+  const [showQuickPaypal, setShowQuickPaypal] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
 
@@ -36,33 +37,9 @@ export default function ProductDetail() {
     setActiveImg(0);
     setSelectedSize(null);
     setSizeError(false);
+    setShowQuickPaypal(false);
     setDownloadError('');
   }, [handle]);
-
-  // Riferimento stabile: se ricreassimo questo array ad ogni render (come
-  // faceva prima), l'effetto dentro PayPalButton lo vedrebbe "cambiato" anche
-  // quando in realtà nulla di rilevante è cambiato, e continuerebbe a smontare
-  // e ricostruire il bottone PayPal — a volte lasciandolo vuoto per una race
-  // condition tra due ricostruzioni sovrapposte.
-  const quickPayItems = useMemo(
-    () => (product ? [{ product, quantity: qty, size: selectedSize ?? undefined }] : []),
-    [product, qty, selectedSize]
-  );
-
-  const handleQuickPaypalSuccess = useCallback(
-    (orderId: string, buyer?: { name: string; address: string }) => {
-      if (!product) return;
-      navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
-        state: {
-          orderId,
-          items: [{ name: product.title, quantity: qty, amount: product.price * qty, image: product.img }],
-          total: product.price * qty,
-          buyer: buyer ?? null,
-        },
-      });
-    },
-    [product, qty, navigate]
-  );
 
   if (!product) {
     return (
@@ -140,29 +117,7 @@ export default function ProductDetail() {
         <div className="product-detail__info">
           <h1 className="product-detail__title">{product.title}</h1>
           <p className="product-detail__price">{formatPrice(product.price)}</p>
-          {(() => {
-            const desc = product.description;
-            const trackMatch = desc.match(/Tracklist:\n([\s\S]*?)(?:\n\n|$)/);
-            if (!trackMatch) {
-              return <p className="product-detail__desc">{desc}</p>;
-            }
-            const intro = desc.slice(0, trackMatch.index).trim();
-            const tracks = trackMatch[1].split('\n').filter(Boolean);
-            const outro = desc.slice((trackMatch.index ?? 0) + trackMatch[0].length).trim();
-            return (
-              <>
-                {intro && <p className="product-detail__desc">{intro}</p>}
-                <p className="product-detail__tracklist-label">Tracklist</p>
-                <ol className="product-detail__tracklist">
-                  {tracks.map((t, i) => {
-                    const track = t.replace(/^\d+\.\s*/, '');
-                    return <li key={i}>{track}</li>;
-                  })}
-                </ol>
-                {outro && <p className="product-detail__desc">{outro}</p>}
-              </>
-            );
-          })()}
+          <p className="product-detail__desc">{product.description}</p>
 
           {product.sizes && (
             <div className="product-detail__sizes">
@@ -218,21 +173,37 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {product.available && !product.digital && (
+          {product.available && !product.digital && product.noShipping && (
             <div className="product-detail__quick-pay">
-              <PayPalButton
-                items={quickPayItems}
-                total={product.price * qty}
-                dynamicShipping={!product.noShipping}
-                onValidate={() => {
-                  if (product.sizes && !selectedSize) {
-                    setSizeError(true);
-                    return false;
-                  }
-                  return true;
-                }}
-                onSuccess={handleQuickPaypalSuccess}
-              />
+              {showQuickPaypal ? (
+                <PayPalButton
+                  items={[{ product, quantity: qty, size: selectedSize ?? undefined }]}
+                  total={product.price * qty}
+                  onSuccess={(orderId, buyer) => {
+                    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
+                      state: {
+                        orderId,
+                        items: [{ name: product.title, quantity: qty, amount: product.price * qty, image: product.img }],
+                        total: product.price * qty,
+                        buyer: buyer ?? null,
+                      },
+                    });
+                  }}
+                />
+              ) : (
+                <button
+                  className="product-detail__paypal-cta"
+                  onClick={() => {
+                    if (product.sizes && !selectedSize) {
+                      setSizeError(true);
+                      return;
+                    }
+                    setShowQuickPaypal(true);
+                  }}
+                >
+                  Paga con <span className="product-detail__paypal-logo">PayPal</span>
+                </button>
+              )}
               <button
                 className="product-detail__more-options"
                 onClick={() => {
