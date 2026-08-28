@@ -223,6 +223,7 @@
   max-width: 50%;
   position: relative;
   isolation: isolate;
+  overflow-x: hidden;
   border-radius: 10px;
 }
 
