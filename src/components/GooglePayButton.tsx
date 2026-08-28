@@ -85,7 +85,6 @@ export default function GooglePayButton({ items, total, country, onSuccess }: Pr
           containerRef.current.innerHTML = '';
           const button = client.createButton({
             buttonType: 'plain',
-            buttonRadius: 10,
             onClick: handleClick,
           });
           containerRef.current.appendChild(button);
