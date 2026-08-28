@@ -43,7 +43,7 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
 
           window.paypal
             .Buttons({
-              style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 52 },
+              style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 45 },
               createOrder: (_data: unknown, actions: any) => {
                 return actions.order.create({
                   purchase_units: [
