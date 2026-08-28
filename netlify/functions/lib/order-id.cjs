@@ -12,7 +12,6 @@ const LETTERS = {
   'xl-felpa': 'F',
   'xl-maglietta': 'T',
   'xl-vinile': 'V',
-  'xl-album-digitale': 'D',
 };
 
 // Su questo sito Netlify non inietta automaticamente le credenziali di Blobs

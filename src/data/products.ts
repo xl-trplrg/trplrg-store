@@ -82,17 +82,6 @@ export const products: Product[] = [
     ],
   },
   {
-    handle: 'xl-album-digitale',
-    title: 'Album Digitale',
-    price: 0,
-    type: 'Digitale',
-    available: true,
-    img: '/products/album-digitale.jpg',
-    description: 'Versione Digitale Scaricabile',
-    digital: true,
-    downloadUrl: '/downloads/XL-TRPLRG-2026.zip',
-  },
-  {
     handle: 'xl-test-checkout',
     title: 'TEST — Prodotto di verifica checkout (rimuovere dopo test)',
     price: 1,
@@ -119,7 +108,6 @@ export const homepageOrder = [
   'xl-cd',
   'xl-maglietta',
   'xl-felpa',
-  'xl-album-digitale',
 ];
 
 export function getProduct(handle: string): Product | undefined {
@@ -131,4 +119,4 @@ export function formatPrice(price: number): string {
   return `€${price.toFixed(2).replace('.', ',')}`;
 }
 
-export const categories = ['All', 'Vinili', 'CD', 'T-Shirt', 'Felpe', 'Digitale'];
+export const categories = ['All', 'Vinili', 'CD', 'T-Shirt', 'Felpe'];
