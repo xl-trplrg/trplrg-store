@@ -82,23 +82,13 @@ export default function GooglePayButton({ items, total, country, onSuccess }: Pr
         })
         .then((response: { result: boolean }) => {
           if (!response.result || !containerRef.current || cancelled) return;
-
-          // Aspettiamo che il browser abbia finito di calcolare il layout (flexbox)
-          // prima di far disegnare a Google il bottone, altrimenti misura una larghezza
-          // sbagliata (spesso 0) e il bottone finisce sovrapposto a quello di PayPal.
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              if (!containerRef.current || cancelled) return;
-              containerRef.current.innerHTML = '';
-              const button = client.createButton({
-                buttonType: 'plain',
-                buttonSizeMode: 'fill',
-                buttonRadius: 10,
-                onClick: handleClick,
-              });
-              containerRef.current.appendChild(button);
-            });
+          containerRef.current.innerHTML = '';
+          const button = client.createButton({
+            buttonType: 'plain',
+            buttonRadius: 10,
+            onClick: handleClick,
           });
+          containerRef.current.appendChild(button);
         })
         .catch(() => {
           // Google Pay non disponibile per questo utente/browser: semplicemente non mostriamo il bottone.
