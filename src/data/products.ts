@@ -81,26 +81,6 @@ export const products: Product[] = [
       { label: '3XL', available: true },
     ],
   },
-  {
-    handle: 'xl-test-checkout',
-    title: 'TEST — Prodotto di verifica checkout (rimuovere dopo test)',
-    price: 1,
-    type: 'Test',
-    available: true,
-    img: '/products/album-digitale.jpg',
-    description: 'Prodotto temporaneo per testare Stripe, PayPal e Google Pay end-to-end. Non visibile nel negozio pubblico (non è in homepageOrder). Rimuovere da products.ts a test completato.',
-    noShipping: true,
-  },
-  {
-    handle: 'xl-test-checkout-spedizione',
-    title: 'TEST — Verifica checkout CON spedizione (rimuovere dopo test)',
-    price: 1,
-    type: 'Test',
-    available: true,
-    img: '/products/album-digitale.jpg',
-    description: 'Come il prodotto test sopra, ma con 1€ di spedizione fissa (invece dei 6€ normali Italia) per verificare a basso costo il fix del totale PayPal con spedizione. Rimuovere da products.ts a test completato.',
-    testShippingOverride: 1,
-  },
 ];
 
 export const homepageOrder = [
