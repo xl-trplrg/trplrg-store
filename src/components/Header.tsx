@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { SearchIcon, CartIcon, UserIcon, MenuIcon, CloseIcon, InstagramIcon } from './Icons';
+import { SearchIcon, CartIcon, MenuIcon, CloseIcon, InstagramIcon } from './Icons';
 import './Header.css';
 
 export default function Header() {
@@ -49,9 +49,6 @@ export default function Header() {
           </div>
 
           <div className="header__right">
-            <Link to="/account" className="header__icon-btn header__desktop-only" aria-label="Account">
-              <UserIcon />
-            </Link>
             <button className="header__icon-btn header__cart-btn" onClick={openCart} aria-label="Cart">
               <CartIcon />
               {count > 0 && <span className="header__cart-count">{count}</span>}
@@ -95,7 +92,6 @@ export default function Header() {
               <button onClick={() => setMobileOpen(false)} aria-label="Close"><CloseIcon /></button>
             </div>
             <Link to="/" onClick={() => setMobileOpen(false)}>Home</Link>
-            <Link to="/account" onClick={() => setMobileOpen(false)}>Account</Link>
             <a href="https://instagram.com/trplrg" target="_blank" rel="noopener noreferrer">Instagram</a>
           </div>
         </div>
