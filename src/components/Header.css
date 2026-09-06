@@ -1,12 +1,12 @@
 .header {
   background: var(--white);
-  padding-top: 48px;
+  padding-top: 18px;
 }
 
 .header__top {
   position: relative;
-  padding-top: 32px;
-  padding-bottom: 32px;
+  padding-top: 16px;
+  padding-bottom: 16px;
 }
 
 .header__hero-logo {
