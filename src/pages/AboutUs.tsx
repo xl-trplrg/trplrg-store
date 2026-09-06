@@ -4,27 +4,23 @@ import { usePageMeta } from '../hooks/usePageMeta';
 export default function AboutUs() {
   usePageMeta({
     title: 'Chi siamo',
-    description: 'XL è un artista rap/boom bap italiano, autore dell\'album di debutto "Troppo Largo", interamente autoprodotto. Scopri la storia del progetto.',
+    description: 'XL è rapper/producer italiano, autore dell\'album di debutto "Troppo Largo", da indipendente.',
   });
 
   return (
     <LegalPage title="Chi siamo">
       <p>
-        XL è un artista rap/boom bap italiano. <strong>"Troppo Largo"</strong> è il suo
-        album di debutto da solista: quattordici tracce scritte, registrate e prodotte
-        in totale autonomia, senza etichetta discografica alle spalle.
+        XL è RAPPER/PRODUCER italiano. "Troppo Largo" è il suo album di debutto da
+        solista: quattordici tracce da indipendente. XL proviene da Pescara, anno 98.
       </p>
       <p>
-        Il progetto nasce come lavoro indipendente a tutti gli effetti: dalla scrittura
-        dei testi alla produzione, fino alla realizzazione di questo stesso sito, ogni
-        fase è stata curata direttamente da XL. trplrg.com è il canale ufficiale del
-        progetto, il solo punto di riferimento per l'acquisto del vinile, del CD e del
-        merchandising legato all'album.
+        trplrg.com è il canale ufficiale del progetto, il solo punto di riferimento per
+        l'acquisto del merchandising legato all'album.
       </p>
       <p>
-        Il nome dell'album, "Troppo Largo", richiama un'estetica precisa che si ritrova
-        anche nel merch: capi con vestibilità oversize, in linea con l'immaginario
-        boom bap e street a cui il disco si ispira.
+        Il nome dell'album, "Troppo Largo" non è solamente un modo di rappresentare se
+        stesso bensì è un progetto legato alla comunità che XL rappresenta, e
+        all'attitudine con cui si affronta la realtà.
       </p>
       <p>
         Per qualsiasi domanda sul progetto, sull'album o sugli ordini, la pagina{' '}

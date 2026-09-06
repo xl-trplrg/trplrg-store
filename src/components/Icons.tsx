@@ -57,6 +57,14 @@ export function InstagramIcon({ size = 20, className }: IconProps) {
   );
 }
 
+export function FacebookIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
+      <path d="M15 8.5h-1.8c-.9 0-1.7.7-1.7 1.7V12h3.4l-.4 3H11.5v7h-3v-7H6.5v-3h2V9.8C8.5 7.4 10.3 5.5 12.7 5.5H15v3Z" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function PlusIcon({ size = 16, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>

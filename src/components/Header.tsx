@@ -59,8 +59,7 @@ export default function Header() {
 
       <nav className="header__nav container">
         <Link to="/" className="header__nav-link">Home</Link>
-        <Link to="/chi-siamo" className="header__nav-link">Chi siamo</Link>
-        <a href="https://instagram.com/trplrg" target="_blank" rel="noopener noreferrer" className="header__nav-link header__desktop-only">
+        <a href="https://instagram.com/trplrg" target="_blank" rel="noopener noreferrer" className="header__nav-link header__desktop-only" aria-label="Instagram">
           <InstagramIcon size={16} />
         </a>
       </nav>
@@ -93,7 +92,6 @@ export default function Header() {
               <button onClick={() => setMobileOpen(false)} aria-label="Close"><CloseIcon /></button>
             </div>
             <Link to="/" onClick={() => setMobileOpen(false)}>Home</Link>
-            <Link to="/chi-siamo" onClick={() => setMobileOpen(false)}>Chi siamo</Link>
             <a href="https://instagram.com/trplrg" target="_blank" rel="noopener noreferrer">Instagram</a>
           </div>
         </div>
