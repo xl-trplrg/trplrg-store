@@ -5,6 +5,7 @@ export default function AboutUs() {
   usePageMeta({
     title: 'Chi siamo',
     description: 'XL è rapper/producer italiano, autore dell\'album di debutto "Troppo Largo", da indipendente.',
+    robots: 'noindex, follow',
   });
 
   return (
