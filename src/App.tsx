@@ -16,6 +16,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import CookiePolicy from './pages/CookiePolicy';
 import ReturnPolicy from './pages/ReturnPolicy';
 import Contacts from './pages/Contacts';
+import AboutUs from './pages/AboutUs';
 import TermsOfService from './pages/TermsOfService';
 import NotFound from './pages/NotFound';
 import './App.css';
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/resi" element={<ReturnPolicy />} />
               <Route path="/recapiti" element={<Contacts />} />
+              <Route path="/chi-siamo" element={<AboutUs />} />
               <Route path="/termini" element={<TermsOfService />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -123,7 +123,7 @@ export default function OrderConfirmation() {
           {order.items.map((item, idx) => (
             <div key={`${item.name}-${idx}`} className="order-confirmation__item">
               {item.image && (
-                <img src={item.image} alt={item.name} className="order-confirmation__item-img" />
+                <img src={item.image} alt={`Foto prodotto: ${item.name}`} className="order-confirmation__item-img" />
               )}
               <div className="order-confirmation__item-info">
                 <p className="order-confirmation__item-name">{item.name}</p>

@@ -51,6 +51,7 @@ export default function ProductDetail() {
   }
 
   const images = [product.img, product.img2, product.img3].filter(Boolean);
+  const imageAlts = [product.imgAlt, product.img2Alt, product.img3Alt].filter(Boolean) as string[];
   const sameType = products.filter(p => p.type === product.type && p.handle !== product.handle);
   const related = (sameType.length > 0 ? sameType : products.filter(p => p.handle !== product.handle)).slice(0, 4);
 
@@ -96,7 +97,7 @@ export default function ProductDetail() {
       <div className="product-detail__main container">
         <div className="product-detail__gallery">
           <div className="product-detail__main-img">
-            <img src={images[activeImg]} alt={product.title} />
+            <img src={images[activeImg]} alt={imageAlts[activeImg] ?? product.title} />
             {!product.available && <span className="product-detail__badge">Esaurito</span>}
           </div>
           {images.length > 1 && (
@@ -107,7 +108,7 @@ export default function ProductDetail() {
                   className={`product-detail__thumb ${i === activeImg ? 'product-detail__thumb--active' : ''}`}
                   onClick={() => setActiveImg(i)}
                 >
-                  <img src={img} alt={`${product.title} ${i + 1}`} />
+                  <img src={img} alt={imageAlts[i] ?? `${product.title} ${i + 1}`} />
                 </button>
               ))}
             </div>

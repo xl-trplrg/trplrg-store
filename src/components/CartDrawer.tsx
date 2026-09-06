@@ -37,7 +37,7 @@ export default function CartDrawer() {
               {items.map(item => (
                 <div key={`${item.product.handle}__${item.size ?? ''}`} className="cart-item">
                   <Link to={`/products/${item.product.handle}`} onClick={closeCart} className="cart-item__img">
-                    <img src={item.product.img} alt={item.product.title} />
+                    <img src={item.product.img} alt={item.product.imgAlt ?? item.product.title} />
                   </Link>
                   <div className="cart-item__info">
                     <Link to={`/products/${item.product.handle}`} onClick={closeCart} className="cart-item__title">

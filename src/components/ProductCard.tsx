@@ -7,9 +7,9 @@ export default function ProductCard({ product, priority = false }: { product: Pr
   return (
     <Link to={`/products/${product.handle}`} className="product-card">
       <div className="product-card__media">
-        <img src={product.img} alt={product.title} loading={priority ? 'eager' : 'lazy'} />
+        <img src={product.img} alt={product.imgAlt} loading={priority ? 'eager' : 'lazy'} />
         {product.img2 && (
-          <img src={product.img2} alt={`${product.title} back`} className="product-card__alt" loading={priority ? 'eager' : 'lazy'} />
+          <img src={product.img2} alt={product.img2Alt ?? product.imgAlt} className="product-card__alt" loading={priority ? 'eager' : 'lazy'} />
         )}
         {!product.available && <span className="product-card__badge">Esaurito</span>}
         {product.tag && product.available && <span className="product-card__badge product-card__badge--tag">{product.tag}</span>}

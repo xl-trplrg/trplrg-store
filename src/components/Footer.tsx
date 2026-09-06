@@ -75,6 +75,7 @@ export default function Footer() {
 
         <div className="footer__bottom">
           <div className="footer__links">
+            <Link to="/chi-siamo">Chi siamo</Link>
             <Link to="/recapiti">Recapiti</Link>
             <Link to="/resi">Politica di restituzione</Link>
             <Link to="/termini">Termini di servizio</Link>

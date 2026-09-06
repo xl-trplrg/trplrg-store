@@ -84,7 +84,7 @@ export default function CartPage() {
           {items.map(item => (
             <div key={`${item.product.handle}__${item.size ?? ''}`} className="cart-page__item">
               <Link to={`/products/${item.product.handle}`} className="cart-page__item-img">
-                <img src={item.product.img} alt={item.product.title} />
+                <img src={item.product.img} alt={item.product.imgAlt ?? item.product.title} />
               </Link>
               <div className="cart-page__item-info">
                 <Link to={`/products/${item.product.handle}`} className="cart-page__item-title">
