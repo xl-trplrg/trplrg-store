@@ -58,7 +58,9 @@ export const products: Product[] = [
     type: 'CD',
     available: true,
     img: '/products/cd.jpg',
+    img2: '/products/cd-2.jpg',
     imgAlt: 'Copertina del CD "Troppo Largo" di XL, edizione fisica dell\'album di debutto hip hop',
+    img2Alt: 'CD "Troppo Largo" di XL con custodia trasparente e disco stampato, vista dall\'alto',
     description: '"TROPPO LARGO" — il primo album da solista di XL, interamente autoprodotto.\n\nTracklist:\n1. Codici\n2. Troppo Largo\n3. Il Motivo\n4. Sacra\n5. Schh\n6. Il Segreto\n7. Polemiche\n8. Ridi Ridi\n9. La Spinta\n10. Il Vizio\n11. Segno\n12. Detto Fatto\n13. Via Vai\n14. Chi Lo Fa\n\nL\'anteprima del CD è un mock-up digitale, il prodotto finale potrebbe differire da questa anteprima.',
   },
   {
