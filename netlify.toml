@@ -33,3 +33,23 @@
   from = "/*"
   to = "/404.html"
   status = 404
+
+[[headers]]
+  for = "/cart"
+  [headers.values]
+    X-Robots-Tag = "noindex, follow"
+
+[[headers]]
+  for = "/account"
+  [headers.values]
+    X-Robots-Tag = "noindex, follow"
+
+[[headers]]
+  for = "/search"
+  [headers.values]
+    X-Robots-Tag = "noindex, follow"
+
+[[headers]]
+  for = "/ordine-confermato"
+  [headers.values]
+    X-Robots-Tag = "noindex, follow"

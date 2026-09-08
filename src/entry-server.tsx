@@ -84,3 +84,28 @@ export function getMeta(url: string): RouteMeta {
   // identico a quello attuale, dove non impostano nulla di proprio).
   return DEFAULT_META;
 }
+
+// JSON-LD Product+Offer per le pagine prodotto — prezzo/disponibilità
+// leggibili da Google (risultati arricchiti, Shopping). null per le altre rotte.
+export function getProductJsonLd(url: string): string | null {
+  const match = url.match(/^\/products\/(.+)$/);
+  if (!match) return null;
+  const product = products.find((p) => p.handle === match[1]);
+  if (!product) return null;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.title,
+    image: product.img ? `https://trplrg.com${product.img}` : undefined,
+    description: product.description?.split('\n')[0] || product.title,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'EUR',
+      price: product.price,
+      availability: product.available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: `https://trplrg.com${url}`,
+    },
+  };
+  return JSON.stringify(schema);
+}

@@ -15,7 +15,7 @@ if (!existsSync(ssrEntryPath)) {
   process.exit(1);
 }
 
-const { render, getMeta, routes } = await import(ssrEntryPath);
+const { render, getMeta, getProductJsonLd, routes } = await import(ssrEntryPath);
 
 const template = readFileSync(join(distDir, 'index.html'), 'utf-8');
 
@@ -50,6 +50,11 @@ function buildPage(route) {
   html = html.replace(/<meta property="og:title" content=".*?" \/>/s, `<meta property="og:title" content="${title}" />`);
   html = html.replace(/<meta property="og:image" content=".*?" \/>/s, `<meta property="og:image" content="${image}" />`);
   html = html.replace(/<meta property="og:url" content=".*?" \/>/s, `<meta property="og:url" content="${url}" />`);
+
+  const productJsonLd = getProductJsonLd(route);
+  if (productJsonLd) {
+    html = html.replace('</head>', `  <script type="application/ld+json">${productJsonLd}</script>\n</head>`);
+  }
 
   return html;
 }
