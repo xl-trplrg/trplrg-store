@@ -55,7 +55,7 @@ interface RouteMeta {
 const DEFAULT_META: RouteMeta = {
   title: 'Troppo Largo',
   description: "L'album di debutto di XL. Vinile, CD e merch ufficiale.",
-  image: 'https://trplrg.com/brand/logo.png',
+  image: 'https://trplrg.com/brand/og-image.jpg',
 };
 
 export function getMeta(url: string): RouteMeta {
