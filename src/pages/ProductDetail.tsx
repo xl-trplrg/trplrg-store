@@ -69,6 +69,7 @@ export default function ProductDetail() {
       });
       const data = await res.json();
       const orderId = data.orderId ?? null;
+      const accessToken = data.accessToken ?? '';
 
       const link = document.createElement('a');
       link.href = product.downloadUrl;
@@ -77,7 +78,7 @@ export default function ProductDetail() {
       link.click();
       link.remove();
 
-      navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
+      navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}&token=${encodeURIComponent(accessToken)}`, {
         state: {
           orderId,
           items: [{ name: product.title, quantity: 1, amount: 0, image: product.img, downloadUrl: product.downloadUrl }],
@@ -202,8 +203,8 @@ export default function ProductDetail() {
                 <PayPalButton
                   items={[{ product, quantity: qty, size: selectedSize ?? undefined }]}
                   total={product.price * qty}
-                  onSuccess={(orderId, buyer) => {
-                    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
+                  onSuccess={(orderId, accessToken, buyer) => {
+                    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}&token=${encodeURIComponent(accessToken)}`, {
                       state: {
                         orderId,
                         items: [{ name: product.title, quantity: qty, amount: product.price * qty, image: product.img }],

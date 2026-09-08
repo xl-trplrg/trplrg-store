@@ -16,7 +16,7 @@ interface Props {
   items: CartItem[];
   total: number;
   shippingCost?: number;
-  onSuccess: (orderId: string, buyer?: Buyer) => void;
+  onSuccess: (orderId: string, accessToken: string, buyer?: Buyer) => void;
 }
 
 // SEGNAPOSTO: il Client ID PayPal è un dato PUBBLICO (non un segreto), va bene metterlo nel
@@ -91,6 +91,7 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
                 }
 
                 let orderId = '';
+                let accessToken = '';
                 try {
                   const res = await fetch('/.netlify/functions/generate-order-id', {
                     method: 'POST',
@@ -103,11 +104,12 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
                   });
                   const data = await res.json();
                   orderId = data.orderId || '';
+                  accessToken = data.accessToken || '';
                 } catch {
                   orderId = '';
                 }
 
-                onSuccess(orderId, buyer);
+                onSuccess(orderId, accessToken, buyer);
               },
             })
             .render(containerRef.current);

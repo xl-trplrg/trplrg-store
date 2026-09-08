@@ -10,14 +10,20 @@ exports.handler = async (event) => {
   }
 
   const orderId = event.queryStringParameters?.order_id;
-  if (!orderId) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'order_id mancante' }) };
+  const token = event.queryStringParameters?.token;
+  if (!orderId || !token) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'order_id o token mancante' }) };
   }
 
   const data = await getOrderDetails(orderId);
-  if (!data) {
+
+  // Stessa risposta ("Ordine non trovato") sia se l'ordine non esiste sia se il
+  // token non corrisponde: così chi prova a indovinare orderId a caso non riesce
+  // a distinguere "non esiste" da "esiste ma non è tuo", ed enumerare diventa inutile.
+  if (!data || data.accessToken !== token) {
     return { statusCode: 404, body: JSON.stringify({ error: 'Ordine non trovato' }) };
   }
 
-  return { statusCode: 200, body: JSON.stringify(data) };
+  const { accessToken, ...publicData } = data;
+  return { statusCode: 200, body: JSON.stringify(publicData) };
 };

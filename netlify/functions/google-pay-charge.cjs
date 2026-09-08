@@ -5,6 +5,7 @@
 // COME CONFIGURARLA: usa la stessa STRIPE_SECRET_KEY già impostata su Netlify per
 // create-checkout-session.cjs — nessuna configurazione aggiuntiva richiesta qui.
 
+const crypto = require('crypto');
 const Stripe = require('stripe');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
@@ -80,14 +81,19 @@ exports.handler = async (event) => {
           downloadUrl: known?.downloadUrl || null,
         };
       });
+      // Stesso token casuale usato per gli ordini PayPal (vedi generate-order-id.cjs):
+      // protegge get-order-by-id.cjs dall'enumerazione dell'orderId.
+      const accessToken = crypto.randomBytes(4).toString('hex');
+
       await saveOrderDetails(orderId, {
         orderId,
         items: orderItems,
         total: amount,
         buyer: buyer || null,
+        accessToken,
       });
 
-      return { statusCode: 200, body: JSON.stringify({ success: true, orderId }) };
+      return { statusCode: 200, body: JSON.stringify({ success: true, orderId, accessToken }) };
     }
 
     return { statusCode: 400, body: JSON.stringify({ error: 'Pagamento non completato', status: paymentIntent.status }) };

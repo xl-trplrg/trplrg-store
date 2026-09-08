@@ -28,6 +28,7 @@ export default function OrderConfirmation() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const orderIdParam = searchParams.get('order_id');
+  const tokenParam = searchParams.get('token');
   const stateData = (location.state as OrderData | undefined) ?? null;
 
   const [order, setOrder] = useState<OrderData | null>(stateData);
@@ -51,11 +52,13 @@ export default function OrderConfirmation() {
         .finally(() => setLoading(false));
       return;
     }
-    if (orderIdParam) {
+    if (orderIdParam && tokenParam) {
       // Caso PayPal/Google Pay dopo un refresh: non c'è un session_id Stripe,
-      // recuperiamo la copia salvata al momento del pagamento.
+      // recuperiamo la copia salvata al momento del pagamento. Il token (nell'URL,
+      // generato al momento dell'acquisto) dimostra che chi chiede è il vero
+      // acquirente, non un estraneo che ha solo indovinato l'order_id.
       setLoading(true);
-      fetch(`/.netlify/functions/get-order-by-id?order_id=${encodeURIComponent(orderIdParam)}`)
+      fetch(`/.netlify/functions/get-order-by-id?order_id=${encodeURIComponent(orderIdParam)}&token=${encodeURIComponent(tokenParam)}`)
         .then(res => res.json())
         .then(data => {
           if (data.error) {
@@ -66,8 +69,14 @@ export default function OrderConfirmation() {
         })
         .catch(() => setError('Impossibile recuperare i dettagli dell\'ordine.'))
         .finally(() => setLoading(false));
+      return;
     }
-  }, [sessionId, orderIdParam, stateData]);
+    if (orderIdParam && !tokenParam) {
+      // Link senza token (es. modificato a mano): non possiamo recuperare l'ordine.
+      setError('Ordine non trovato');
+      setLoading(false);
+    }
+  }, [sessionId, orderIdParam, tokenParam, stateData]);
 
   if (loading) {
     return (

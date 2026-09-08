@@ -2,6 +2,7 @@
 // è già andato a buon fine (il pagamento vero avviene altrove: PayPal SDK o google-pay-charge.cjs).
 // Questa funzione si occupa solo di generare un Order ID progressivo, mai di soldi.
 
+const crypto = require('crypto');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { PRICES } = require('./lib/prices.cjs');
@@ -38,9 +39,16 @@ exports.handler = async (event) => {
     });
     const itemsSum = orderItems.reduce((sum, i) => sum + i.amount, 0);
     const total = typeof clientTotal === 'number' && clientTotal >= itemsSum ? clientTotal : itemsSum;
-    await saveOrderDetails(orderId, { orderId, items: orderItems, total, buyer: buyer || null });
 
-    return { statusCode: 200, body: JSON.stringify({ orderId }) };
+    // Token casuale imprevedibile: solo chi lo riceve in questa risposta (il vero
+    // acquirente, nel suo browser) può poi rileggere i dettagli di QUESTO ordine
+    // tramite get-order-by-id.cjs. Senza il token, conoscere/indovinare il solo
+    // orderId non basta più a leggere nome/indirizzo di un altro cliente.
+    const accessToken = crypto.randomBytes(4).toString('hex');
+
+    await saveOrderDetails(orderId, { orderId, items: orderItems, total, buyer: buyer || null, accessToken });
+
+    return { statusCode: 200, body: JSON.stringify({ orderId, accessToken }) };
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }

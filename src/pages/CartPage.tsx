@@ -22,8 +22,8 @@ export default function CartPage() {
   const shippingCost = allExemptFromShipping ? 0 : (testShippingOverride ?? getShippingCost(country));
   const grandTotal = total + shippingCost;
 
-  const handleWalletSuccess = (orderId: string, buyer?: { name: string; address: string }) => {
-    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}`, {
+  const handleWalletSuccess = (orderId: string, accessToken: string, buyer?: { name: string; address: string }) => {
+    navigate(`/ordine-confermato?order_id=${encodeURIComponent(orderId)}&token=${encodeURIComponent(accessToken)}`, {
       state: {
         orderId,
         items: items.map(i => ({
