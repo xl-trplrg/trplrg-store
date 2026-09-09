@@ -16,6 +16,7 @@ interface Props {
   items: CartItem[];
   total: number;
   shippingCost?: number;
+  country?: string;
   onSuccess: (orderId: string, accessToken: string, buyer?: Buyer) => void;
 }
 
@@ -24,7 +25,7 @@ interface Props {
 // (usa "Live" quando sei pronto a incassare davvero, "Sandbox" per fare prove).
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'YOUR_PAYPAL_CLIENT_ID';
 
-export default function PayPalButton({ items, total, shippingCost = 0, onSuccess }: Props) {
+export default function PayPalButton({ items, total, shippingCost = 0, country, onSuccess }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,75 +42,45 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
           if (!containerRef.current) return;
           containerRef.current.innerHTML = '';
 
+          const cartItems = items.map((i) => ({
+            handle: i.product.handle,
+            quantity: i.quantity,
+            size: i.size,
+          }));
+
           window.paypal
             .Buttons({
               style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal', height: 45 },
-              createOrder: (_data: unknown, actions: any) => {
-                return actions.order.create({
-                  purchase_units: [
-                    {
-                      amount: {
-                        value: total.toFixed(2),
-                        currency_code: 'EUR',
-                        breakdown: {
-                          // PayPal richiede che item_total sia ESATTAMENTE la somma degli
-                          // unit_amount degli items sotto — la spedizione va nel suo campo
-                          // separato, altrimenti PayPal può rifiutare l'ordine.
-                          item_total: { value: (total - shippingCost).toFixed(2), currency_code: 'EUR' },
-                          shipping: { value: shippingCost.toFixed(2), currency_code: 'EUR' },
-                        },
-                      },
-                      items: items.map(i => ({
-                        name: i.size ? `${i.product.title} — Taglia ${i.size}` : i.product.title,
-                        unit_amount: { value: i.product.price.toFixed(2), currency_code: 'EUR' },
-                        quantity: String(i.quantity),
-                      })),
-                    },
-                  ],
+              // L'ordine ora viene creato dal server: calcola il totale dal catalogo
+              // vero (lib/prices.cjs + lib/shipping.cjs), così non può più essere
+              // alterato dal browser prima di partire verso PayPal.
+              createOrder: async () => {
+                const res = await fetch('/.netlify/functions/paypal-create-order', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ items: cartItems, country }),
                 });
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}));
+                  throw new Error(err.error || 'Impossibile creare l\'ordine PayPal');
+                }
+                const data = await res.json();
+                return data.orderID;
               },
-              onApprove: async (_data: unknown, actions: any) => {
-                const details = await actions.order.capture();
-
-                let buyer: Buyer | undefined;
-                try {
-                  const shipping = details?.purchase_units?.[0]?.shipping;
-                  const payerName = details?.payer?.name;
-                  const name = shipping?.name?.full_name
-                    || (payerName ? `${payerName.given_name || ''} ${payerName.surname || ''}`.trim() : '');
-                  const a = shipping?.address;
-                  if (name || a) {
-                    buyer = {
-                      name: name || '',
-                      address: a
-                        ? `${[a.address_line_1, a.address_line_2].filter(Boolean).join(', ')}, ${a.postal_code || ''} ${a.admin_area_2 || ''}${a.admin_area_1 ? ' (' + a.admin_area_1 + ')' : ''} - ${a.country_code || ''}`
-                        : '',
-                    };
-                  }
-                } catch {
-                  buyer = undefined;
+              // L'incasso ora avviene sul server (mai più actions.order.capture()
+              // nel browser): il browser comunica solo che l'utente ha approvato.
+              onApprove: async (data: { orderID: string }) => {
+                const res = await fetch('/.netlify/functions/paypal-capture-order', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ orderID: data.orderID, items: cartItems }),
+                });
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}));
+                  throw new Error(err.error || 'Impossibile completare il pagamento PayPal');
                 }
-
-                let orderId = '';
-                let accessToken = '';
-                try {
-                  const res = await fetch('/.netlify/functions/generate-order-id', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity })),
-                      buyer,
-                      total,
-                    }),
-                  });
-                  const data = await res.json();
-                  orderId = data.orderId || '';
-                  accessToken = data.accessToken || '';
-                } catch {
-                  orderId = '';
-                }
-
-                onSuccess(orderId, accessToken, buyer);
+                const result = await res.json();
+                onSuccess(result.orderId, result.accessToken, result.buyer ?? undefined);
               },
             })
             .render(containerRef.current);
@@ -133,7 +104,7 @@ export default function PayPalButton({ items, total, shippingCost = 0, onSuccess
         document.body.appendChild(script);
       }
     }
-  }, [items, total, onSuccess]);
+  }, [items, total, shippingCost, country, onSuccess]);
 
   return <div ref={containerRef} className="paypal-button-container" />;
 }
