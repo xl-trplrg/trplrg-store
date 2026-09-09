@@ -10,6 +10,7 @@ const Stripe = require('stripe');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
+const { hasEnoughStock, decrementStockOnce } = require('./lib/stock.cjs');
 
 // Stessa fonte di verità prezzi usata da create-checkout-session.cjs.
 // Se aggiorni un prezzo in un posto, aggiornalo anche nell'altro.
@@ -29,6 +30,13 @@ exports.handler = async (event) => {
     }
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    }
+
+    // Controllo scorte PRIMA di addebitare la carta: qui il pagamento è
+    // immediato (niente redirect esterno), quindi ha senso bloccare subito.
+    const stockCheck = await hasEnoughStock(items);
+    if (!stockCheck.ok) {
+      return { statusCode: 409, body: JSON.stringify({ error: 'Prodotto esaurito', handle: stockCheck.handle }) };
     }
 
     // Totale calcolato SOLO dal server, mai da quello che manda il browser.
@@ -61,6 +69,15 @@ exports.handler = async (event) => {
     });
 
     if (paymentIntent.status === 'succeeded') {
+      // Decremento scorte solo ORA che l'addebito è confermato riuscito.
+      // Chiave idempotenza = id del paymentIntent, per sicurezza in caso di retry.
+      try {
+        await decrementStockOnce(paymentIntent.id, items);
+      } catch (err) {
+        console.error('Errore nel decremento scorte Google Pay:', err);
+        // Il pagamento è già riuscito, non blocchiamo la risposta per un problema di scorte.
+      }
+
       let orderId = 'TRPLRG-000000-000-X';
       try {
         orderId = await generateOrderId(items);

@@ -8,6 +8,7 @@
 const Stripe = require('stripe');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
+const { hasEnoughStock } = require('./lib/stock.cjs');
 
 // IMPORTANTE: questa lista prezzi è la fonte di verità server-side.
 // Deve restare identica a src/data/products.ts (handle + price), altrimenti i totali non torneranno.
@@ -25,6 +26,13 @@ exports.handler = async (event) => {
 
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    }
+
+    // Controllo scorte PRIMA di creare la sessione Stripe: se un prodotto è
+    // già esaurito non ha senso far pagare il cliente per poi doverlo rimborsare.
+    const stockCheck = await hasEnoughStock(items);
+    if (!stockCheck.ok) {
+      return { statusCode: 409, body: JSON.stringify({ error: 'Prodotto esaurito', handle: stockCheck.handle }) };
     }
 
     const origin = event.headers.origin || `https://${event.headers.host}`;
@@ -69,11 +77,19 @@ exports.handler = async (event) => {
       // non blocchiamo mai un pagamento per un problema di generazione ID
     }
 
+    // Passiamo handle+quantità nei metadata della sessione: è l'unico modo per
+    // farli arrivare intatti al webhook dopo il pagamento, dato che i line_items
+    // di Stripe restituiscono solo nome/importo, non l'handle del catalogo.
+    const stockItems = items.map((item) => ({
+      handle: item.handle,
+      quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+    }));
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items,
-      metadata: { orderId },
+      metadata: { orderId, stockItems: JSON.stringify(stockItems) },
       shipping_address_collection: {
         allowed_countries: [
           'IT', 'FR', 'DE', 'AT', 'NL', 'HR', 'HU', 'SI',

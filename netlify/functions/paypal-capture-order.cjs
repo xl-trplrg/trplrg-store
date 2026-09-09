@@ -12,6 +12,7 @@ const { getPayPalAccessToken } = require('./lib/paypal-client.cjs');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { PRICES } = require('./lib/prices.cjs');
+const { decrementStockOnce } = require('./lib/stock.cjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -48,6 +49,17 @@ exports.handler = async (event) => {
     const status = details?.purchase_units?.[0]?.payments?.captures?.[0]?.status;
     if (details.status !== 'COMPLETED' && status !== 'COMPLETED') {
       return { statusCode: 400, body: JSON.stringify({ error: 'Pagamento non completato', status: details.status }) };
+    }
+
+    // Decremento scorte solo ORA che l'incasso è confermato COMPLETED.
+    // Chiave idempotenza = orderID PayPal, per sicurezza in caso di doppia capture.
+    // NB: usa gli "items" mandati dal client in questa chiamata (stesso dato già
+    // usato per il riepilogo salvato) — non gli items effettivi dell'ordine PayPal.
+    try {
+      await decrementStockOnce(orderID, items);
+    } catch (err) {
+      console.error('Errore nel decremento scorte PayPal:', err);
+      // Il pagamento è già incassato, non blocchiamo la risposta per un problema di scorte.
     }
 
     // Estrazione buyer dalla risposta PayPal (stessa logica che prima stava nel

@@ -17,6 +17,7 @@
 
 const Stripe = require('stripe');
 const { saveStripeConfirmedOrder } = require('./lib/stripe-confirmed-store.cjs');
+const { decrementStockOnce } = require('./lib/stock.cjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -72,6 +73,21 @@ exports.handler = async (event) => {
         }
 
         const orderId = session.metadata?.orderId || null;
+
+        // Decremento scorte SOLO qui: è l'unico punto server-side che conferma
+        // in modo affidabile "questo pagamento è andato a buon fine", con
+        // protezione da doppio decremento se Stripe ripete lo stesso evento
+        // (usa session.id come chiave, quindi anche in caso di retry decrementa una volta sola).
+        try {
+          const stockItems = JSON.parse(session.metadata?.stockItems || '[]');
+          if (Array.isArray(stockItems) && stockItems.length > 0) {
+            await decrementStockOnce(session.id, stockItems);
+          }
+        } catch (err) {
+          console.error('Errore nel decremento scorte dal webhook Stripe:', err);
+          // Non blocchiamo mai la risposta a Stripe per un problema di scorte:
+          // il pagamento è già confermato, va gestito manualmente se serve.
+        }
 
         await saveStripeConfirmedOrder(session.id, {
           orderId,

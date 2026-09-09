@@ -7,6 +7,7 @@
 
 const { getPayPalAccessToken } = require('./lib/paypal-client.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
+const { hasEnoughStock } = require('./lib/stock.cjs');
 
 // Stessa fonte di verità prezzi usata da Stripe e Google Pay.
 const { PRICES } = require('./lib/prices.cjs');
@@ -21,6 +22,12 @@ exports.handler = async (event) => {
 
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    }
+
+    // Controllo scorte PRIMA di creare l'ordine PayPal.
+    const stockCheck = await hasEnoughStock(items);
+    if (!stockCheck.ok) {
+      return { statusCode: 409, body: JSON.stringify({ error: 'Prodotto esaurito', handle: stockCheck.handle }) };
     }
 
     // Totale articoli calcolato SOLO dal catalogo server-side (mai da quello che manda il browser).
