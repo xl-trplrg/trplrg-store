@@ -38,6 +38,7 @@
 
 .product-detail__main-img-el--active {
   opacity: 1;
+  z-index: 1;
 }
 
 .product-detail__badge {
