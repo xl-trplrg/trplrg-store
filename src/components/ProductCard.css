@@ -21,14 +21,11 @@
 
 .product-card__alt {
   opacity: 0;
+  z-index: 1;
 }
 
 .product-card:hover .product-card__alt {
   opacity: 1;
-}
-
-.product-card:hover .product-card__media:has(.product-card__alt) img:first-child {
-  opacity: 0;
 }
 
 .product-card__badge {
