@@ -98,7 +98,14 @@ export default function ProductDetail() {
       <div className="product-detail__main container">
         <div className="product-detail__gallery">
           <div className="product-detail__main-img">
-            <img src={images[activeImg]} alt={imageAlts[activeImg] ?? product.title} />
+            {images.map((img, i) => (
+              <img
+                key={img}
+                src={img}
+                alt={imageAlts[i] ?? product.title}
+                className={i === activeImg ? 'product-detail__main-img-el product-detail__main-img-el--active' : 'product-detail__main-img-el'}
+              />
+            ))}
             {!product.available && <span className="product-detail__badge">Esaurito</span>}
           </div>
           {images.length > 1 && (
