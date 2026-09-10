@@ -1,6 +1,5 @@
 .footer {
   background: var(--white);
-  border-top: 1px solid var(--border);
   padding: 64px 0 32px;
   margin-top: 64px;
 }
@@ -106,7 +105,6 @@
   gap: 24px;
   flex-wrap: wrap;
   padding-bottom: 24px;
-  border-top: 1px solid var(--border);
   padding-top: 24px;
 }
 
