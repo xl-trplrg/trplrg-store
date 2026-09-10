@@ -36,8 +36,8 @@
   transition: opacity 0.25s ease;
 }
 
-.product-detail__main-img-el--active {
-  opacity: 1;
+.product-detail__main-img-el.product-detail__main-img-el--active {
+  opacity: 1 !important;
   z-index: 1;
 }
 
