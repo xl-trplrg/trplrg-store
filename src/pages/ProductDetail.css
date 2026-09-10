@@ -34,6 +34,9 @@
 .product-detail__main-img-el {
   opacity: 0;
   transition: opacity 0.25s ease;
+  will-change: opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .product-detail__main-img-el.product-detail__main-img-el--active {
