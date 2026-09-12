@@ -95,15 +95,12 @@ export default function ProductDetail() {
 
   return (
     <div className="product-detail">
-      <div className="product-detail__top container">
-        <Link to="/" className="product-detail__back-btn">
-          <ArrowLeftIcon size={16} />
-          Indietro
-        </Link>
-      </div>
       <div className="product-detail__main container">
         <div className="product-detail__gallery">
           <div className="product-detail__main-img">
+            <Link to="/" className="product-detail__back-btn" aria-label="Torna alla home">
+              <ArrowLeftIcon size={18} />
+            </Link>
             {images.map((img, i) => (
               <img
                 key={img}
