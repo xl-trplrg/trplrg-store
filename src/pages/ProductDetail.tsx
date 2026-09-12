@@ -4,7 +4,7 @@ import { getProduct, products, formatPrice } from '../data/products';
 import { useCart } from '../context/CartContext';
 import ProductCard from '../components/ProductCard';
 import PayPalButton from '../components/PayPalButton';
-import { PlusIcon, MinusIcon } from '../components/Icons';
+import { PlusIcon, MinusIcon, ArrowLeftIcon } from '../components/Icons';
 import { usePageMeta } from '../hooks/usePageMeta';
 import './ProductDetail.css';
 
@@ -95,6 +95,12 @@ export default function ProductDetail() {
 
   return (
     <div className="product-detail">
+      <div className="product-detail__top container">
+        <Link to="/" className="product-detail__back-btn">
+          <ArrowLeftIcon size={16} />
+          Indietro
+        </Link>
+      </div>
       <div className="product-detail__main container">
         <div className="product-detail__gallery">
           <div className="product-detail__main-img">

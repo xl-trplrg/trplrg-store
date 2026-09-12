@@ -2,6 +2,24 @@
   padding: 32px 0 64px;
 }
 
+.product-detail__top {
+  padding-top: 24px;
+  margin-bottom: 8px;
+}
+
+.product-detail__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.product-detail__back-btn:hover {
+  color: var(--muted);
+}
+
 .product-detail__main {
   display: grid;
   grid-template-columns: 1fr 1fr;
