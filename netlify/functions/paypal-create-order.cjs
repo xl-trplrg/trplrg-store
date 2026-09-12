@@ -8,6 +8,7 @@
 const { getPayPalAccessToken } = require('./lib/paypal-client.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
 const { hasEnoughStock } = require('./lib/stock.cjs');
+const { savePendingItems } = require('./lib/pending-paypal-items.cjs');
 
 // Stessa fonte di verità prezzi usata da Stripe e Google Pay.
 const { PRICES } = require('./lib/prices.cjs');
@@ -94,6 +95,11 @@ exports.handler = async (event) => {
     }
 
     const data = await response.json();
+
+    // Salviamo QUI gli articoli reali (validati sopra), associati all'orderID
+    // che sta per essere approvato — paypal-capture-order.cjs li rileggerà da
+    // qui invece di fidarsi di quello che arriva dal browser alla capture.
+    await savePendingItems(data.id, items);
 
     return { statusCode: 200, body: JSON.stringify({ orderID: data.id }) };
   } catch (err) {

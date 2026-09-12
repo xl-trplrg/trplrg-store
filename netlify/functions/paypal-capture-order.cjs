@@ -13,6 +13,7 @@ const { generateOrderId } = require('./lib/order-id.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { PRICES } = require('./lib/prices.cjs');
 const { decrementStockOnce } = require('./lib/stock.cjs');
+const { getPendingItems, deletePendingItems } = require('./lib/pending-paypal-items.cjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -20,13 +21,24 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { orderID, items } = JSON.parse(event.body);
+    const { orderID, items: clientItems } = JSON.parse(event.body);
 
     if (!orderID) {
       return { statusCode: 400, body: JSON.stringify({ error: 'orderID mancante' }) };
     }
+
+    // Fonte di verità: gli articoli salvati alla CREAZIONE dell'ordine (validi,
+    // impossibili da alterare dal browser). Il fallback su clientItems copre
+    // solo il caso raro in cui il salvataggio iniziale sia fallito per un
+    // problema tecnico — non è la via normale.
+    const pendingItems = await getPendingItems(orderID);
+    const items = pendingItems || clientItems;
+
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    }
+    if (!pendingItems) {
+      console.warn('paypal-capture-order: articoli pending non trovati per', orderID, '— uso fallback client.');
     }
 
     const accessToken = await getPayPalAccessToken();
@@ -53,14 +65,17 @@ exports.handler = async (event) => {
 
     // Decremento scorte solo ORA che l'incasso è confermato COMPLETED.
     // Chiave idempotenza = orderID PayPal, per sicurezza in caso di doppia capture.
-    // NB: usa gli "items" mandati dal client in questa chiamata (stesso dato già
-    // usato per il riepilogo salvato) — non gli items effettivi dell'ordine PayPal.
+    // Usa gli articoli reali salvati alla creazione dell'ordine (vedi pending-paypal-items.cjs),
+    // non quelli mandati dal client in questa chiamata — altrimenti si potrebbe
+    // dichiarare un carrello diverso da quello effettivamente pagato.
     try {
       await decrementStockOnce(orderID, items);
     } catch (err) {
       console.error('Errore nel decremento scorte PayPal:', err);
       // Il pagamento è già incassato, non blocchiamo la risposta per un problema di scorte.
     }
+
+    deletePendingItems(orderID).catch(() => {});
 
     // Estrazione buyer dalla risposta PayPal (stessa logica che prima stava nel
     // browser, in PayPalButton.tsx onApprove) — qui è più sicuro perché i dati
