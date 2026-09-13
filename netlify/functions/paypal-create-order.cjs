@@ -13,6 +13,13 @@ const { savePendingItems } = require('./lib/pending-paypal-items.cjs');
 // Stessa fonte di verità prezzi usata da Stripe e Google Pay.
 const { PRICES } = require('./lib/prices.cjs');
 
+// URL base dell'API PayPal, configurabile via env var per poter puntare alla
+// sandbox in test (PAYPAL_API_BASE_URL=https://api-m.sandbox.paypal.com) senza
+// toccare il codice. Se non impostata, si resta sulla produzione come prima.
+// NOTA: deve essere coerente con quella usata in paypal-capture-order.cjs
+// (stesso ambiente, sandbox o produzione, per entrambe le chiamate).
+const PAYPAL_API_BASE_URL = process.env.PAYPAL_API_BASE_URL || 'https://api.paypal.com';
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -83,7 +90,7 @@ exports.handler = async (event) => {
       items: paypalItems.map(({ _lineTotal, ...rest }) => rest),
     };
 
-    const response = await fetch('https://api.paypal.com/v2/checkout/orders', {
+    const response = await fetch(`${PAYPAL_API_BASE_URL}/v2/checkout/orders`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,

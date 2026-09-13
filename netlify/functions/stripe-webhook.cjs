@@ -18,6 +18,7 @@
 const Stripe = require('stripe');
 const { saveStripeConfirmedOrder } = require('./lib/stripe-confirmed-store.cjs');
 const { decrementStockOnce } = require('./lib/stock.cjs');
+const { sendStockAlertEmail } = require('./lib/stock-alert.cjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -83,7 +84,17 @@ exports.handler = async (event) => {
         // nessuno legge.
         const stockItems = JSON.parse(session.metadata?.stockItems || '[]');
         if (Array.isArray(stockItems) && stockItems.length > 0) {
-          await decrementStockOnce(session.id, stockItems);
+          const stockResult = await decrementStockOnce(session.id, stockItems);
+          if (!stockResult.ok) {
+            console.error('Scorte esaurite a metà ordine (Stripe), session:', session.id, 'dettagli:', stockResult);
+            await sendStockAlertEmail({
+              source: 'stripe-webhook',
+              idempotencyKey: session.id,
+              handle: stockResult.handle,
+              remaining: stockResult.remaining,
+              items: stockItems,
+            });
+          }
         }
 
         await saveStripeConfirmedOrder(session.id, {

@@ -13,7 +13,13 @@ const { generateOrderId } = require('./lib/order-id.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { PRICES } = require('./lib/prices.cjs');
 const { decrementStockOnce } = require('./lib/stock.cjs');
+const { sendStockAlertEmail } = require('./lib/stock-alert.cjs');
 const { getPendingItems, deletePendingItems } = require('./lib/pending-paypal-items.cjs');
+
+// URL base dell'API PayPal, configurabile via env var per poter puntare alla
+// sandbox in test (PAYPAL_API_BASE_URL=https://api-m.sandbox.paypal.com) senza
+// toccare il codice. Se non impostata, si resta sulla produzione come prima.
+const PAYPAL_API_BASE_URL = process.env.PAYPAL_API_BASE_URL || 'https://api.paypal.com';
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -28,22 +34,34 @@ exports.handler = async (event) => {
     }
 
     // Fonte di verità: gli articoli salvati alla CREAZIONE dell'ordine (validi,
-    // impossibili da alterare dal browser). Il fallback su clientItems copre
-    // solo il caso raro in cui il salvataggio iniziale sia fallito per un
-    // problema tecnico — non è la via normale.
+    // impossibili da alterare dal browser). NON si usa più il fallback su
+    // clientItems per decrementare le scorte: fidarsi del carrello mandato dal
+    // browser in questa chiamata separata permetterebbe di dichiarare un
+    // carrello diverso da quello effettivamente creato/pagato. Se il recupero
+    // fallisce, blocchiamo la capture (il pagamento non viene incassato) e
+    // logghiamo per gestione manuale, invece di procedere alla cieca.
     const pendingItems = await getPendingItems(orderID);
-    const items = pendingItems || clientItems;
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    if (!Array.isArray(pendingItems) || pendingItems.length === 0) {
+      console.error(
+        'paypal-capture-order: articoli pending non trovati/non validi per orderID',
+        orderID,
+        '— capture bloccata, richiede gestione manuale. clientItems ricevuti (solo per riferimento, NON usati):',
+        clientItems
+      );
+      return {
+        statusCode: 409,
+        body: JSON.stringify({
+          error: 'Impossibile verificare il carrello dell\'ordine. Il pagamento non è stato incassato, riprova o contatta il supporto.',
+        }),
+      };
     }
-    if (!pendingItems) {
-      console.warn('paypal-capture-order: articoli pending non trovati per', orderID, '— uso fallback client.');
-    }
+
+    const items = pendingItems;
 
     const accessToken = await getPayPalAccessToken();
 
-    const response = await fetch(`https://api.paypal.com/v2/checkout/orders/${orderID}/capture`, {
+    const response = await fetch(`${PAYPAL_API_BASE_URL}/v2/checkout/orders/${orderID}/capture`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -69,7 +87,17 @@ exports.handler = async (event) => {
     // non quelli mandati dal client in questa chiamata — altrimenti si potrebbe
     // dichiarare un carrello diverso da quello effettivamente pagato.
     try {
-      await decrementStockOnce(orderID, items);
+      const stockResult = await decrementStockOnce(orderID, items);
+      if (!stockResult.ok) {
+        console.error('Scorte esaurite a metà ordine (PayPal), orderID:', orderID, 'dettagli:', stockResult);
+        await sendStockAlertEmail({
+          source: 'paypal-capture-order',
+          idempotencyKey: orderID,
+          handle: stockResult.handle,
+          remaining: stockResult.remaining,
+          items,
+        });
+      }
     } catch (err) {
       console.error('Errore nel decremento scorte PayPal:', err);
       // Il pagamento è già incassato, non blocchiamo la risposta per un problema di scorte.

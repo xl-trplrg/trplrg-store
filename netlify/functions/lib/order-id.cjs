@@ -5,6 +5,7 @@
 //  - SUFFISSO: per ogni tipo di prodotto presente nell'ordine, in ordine alfabetico (C, F, T, V):
 //    se quantità 1 -> solo la lettera (es. "F"), se quantità >1 -> numero+lettera (es. "2T")
 
+const crypto = require('crypto');
 const { getStore } = require('@netlify/blobs');
 
 const LETTERS = {
@@ -57,6 +58,21 @@ async function generateOrderId(items) {
   const { mm, dd, yy } = datePartsRome();
   const dateKey = `${yy}-${mm}-${dd}`;
 
+  // Fallback robusto: usato quando Blobs è irraggiungibile OPPURE quando,
+  // dopo 3 tentativi, non siamo mai riusciti a CONFERMARE che il valore
+  // scritto fosse davvero il nostro (scritture concorrenti che si accavallano
+  // in continuazione). In quel caso NON dobbiamo comunque usare `next`: è un
+  // numero che potremmo non aver mai davvero "vinto", quindi rischia di
+  // duplicare il progressivo di un altro ordine dello stesso giorno.
+  // Il vecchio fallback Date.now().slice(-3) aveva solo 3 cifre decimali
+  // (1000 valori possibili, si ripete più volte al giorno): qui usiamo
+  // timestamp in base36 + byte casuali crittografici, entropia molto più alta.
+  function robustFallbackProgressive() {
+    const t = Date.now().toString(36).toUpperCase().slice(-4);
+    const r = crypto.randomBytes(2).toString('hex').toUpperCase();
+    return `${t}${r}`;
+  }
+
   let progressive = '000';
   try {
     const store = getOrderCountersStore();
@@ -67,6 +83,7 @@ async function generateOrderId(items) {
     // duplicati quasi a zero. In ogni caso un eventuale ID duplicato è solo
     // un problema di etichetta leggibile: non influisce sull'addebito reale.
     let next = 1;
+    let verified = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       let current = 0;
       try {
@@ -83,22 +100,29 @@ async function generateOrderId(items) {
       // qui — altrimenti c'è stata una scrittura concorrente e riproviamo.
       try {
         const verify = await store.get(dateKey, { type: 'json' });
-        if (verify === next) break;
+        if (verify === next) {
+          verified = true;
+          break;
+        }
       } catch {
-        break;
+        // Lettura di verifica fallita: non possiamo confermare che `next` sia
+        // davvero nostro, quindi NON usciamo dichiarando successo — lasciamo
+        // che il ciclo esaurisca i tentativi (o riprovi) come un normale conflitto.
       }
 
       if (attempt < 2) {
         await new Promise((r) => setTimeout(r, 30 + Math.floor(Math.random() * 50)));
       }
     }
-    progressive = String(next).padStart(3, '0');
+    // Dopo 3 tentativi senza una verifica confermata, `next` non è affidabile:
+    // usiamo il fallback robusto invece di rischiare un progressivo duplicato.
+    progressive = verified ? String(next).padStart(3, '0') : robustFallbackProgressive();
   } catch (err) {
     // Logghiamo l'errore vero nei log della function Netlify (Netlify UI -> Functions -> logs)
     // così la prossima volta si vede subito perché Blobs non ha scritto nulla,
     // invece di scoprirlo solo dal fatto che lo store risulta vuoto.
     console.error('Netlify Blobs error in generateOrderId:', err);
-    progressive = String(Date.now()).slice(-3);
+    progressive = robustFallbackProgressive();
   }
 
   const suffix = buildSuffix(items) || 'X';

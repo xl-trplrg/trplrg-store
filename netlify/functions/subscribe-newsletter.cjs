@@ -16,8 +16,35 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 3;
 const requestLog = new Map(); // ip -> array di timestamp
 
+// Senza pulizia, ogni IP che ha mai chiamato questa function una volta resta
+// per sempre nella Map (anche con l'array di timestamp vuoto dopo il filtro),
+// finché l'istanza Netlify Function resta "calda": su un sito con traffico
+// continuo può non fare mai un cold start per ore/giorni, quindi la Map
+// cresce indefinitamente (memory leak). Ogni tot chiamate, o comunque non più
+// spesso di una volta ogni finestra di rate limit, rimuoviamo le voci con
+// SOLO timestamp scaduti (nessuna richiesta recente per quell'IP).
+const CLEANUP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
+let lastCleanup = Date.now();
+
+function cleanupExpiredEntries(now) {
+  for (const [ip, timestamps] of requestLog) {
+    const fresh = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (fresh.length === 0) {
+      requestLog.delete(ip);
+    } else if (fresh.length !== timestamps.length) {
+      requestLog.set(ip, fresh);
+    }
+  }
+  lastCleanup = now;
+}
+
 function isRateLimited(ip) {
   const now = Date.now();
+
+  if (now - lastCleanup >= CLEANUP_INTERVAL_MS) {
+    cleanupExpiredEntries(now);
+  }
+
   const timestamps = (requestLog.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
   timestamps.push(now);
   requestLog.set(ip, timestamps);

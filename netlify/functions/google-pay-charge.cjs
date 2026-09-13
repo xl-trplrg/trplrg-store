@@ -11,10 +11,46 @@ const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { hasEnoughStock, decrementStockOnce, exceedsMaxPerProduct } = require('./lib/stock.cjs');
+const { sendStockAlertEmail } = require('./lib/stock-alert.cjs');
 
 // Stessa fonte di verità prezzi usata da create-checkout-session.cjs.
 // Se aggiorni un prezzo in un posto, aggiornalo anche nell'altro.
 const { PRICES } = require('./lib/prices.cjs');
+
+// Validazione server-side dell'indirizzo `buyer`. A differenza di Stripe
+// (shipping_details letto dalla sessione già confermata) e PayPal (shipping
+// letto dalla risposta di capture), qui il `buyer` arriva così com'è dal
+// browser (Google Pay -> paymentData.shippingAddress, mai verificato da noi):
+// un client malevolo potrebbe mandare campi mancanti, enormi, o con caratteri
+// di controllo (es. a-capo, usati per attacchi di header injection se questo
+// valore finisse mai in un'intestazione email). Qui NON validiamo l'identità
+// del cliente (non è quello il rischio: l'importo resta sempre ricalcolato
+// sopra dal catalogo server-side) ma la FORMA dei dati prima di salvarli.
+const MAX_BUYER_FIELD_LENGTH = 300;
+
+function sanitizeBuyerField(value) {
+  if (typeof value !== 'string') return '';
+  // Rimuove newline/caratteri di controllo (evita header injection se questo
+  // testo finisse in un'intestazione email o in un CSV) e taglia la lunghezza.
+  return value.replace(/[\r\n\t\x00-\x1F\x7F]+/g, ' ').trim().slice(0, MAX_BUYER_FIELD_LENGTH);
+}
+
+// Ritorna { valid: true, buyer } con i campi puliti, oppure { valid: false }
+// se il buyer mandato dal client non ha la forma minima attesa (non blocca
+// l'intero ordine da solo: la spedizione resta comunque richiesta lato
+// Google Pay per i prodotti fisici, quindi un buyer assente/invalido qui
+// è un'anomalia da rifiutare prima di addebitare la carta).
+function validateBuyer(rawBuyer) {
+  if (rawBuyer === undefined || rawBuyer === null) return { valid: true, buyer: null };
+  if (typeof rawBuyer !== 'object' || Array.isArray(rawBuyer)) return { valid: false };
+
+  const name = sanitizeBuyerField(rawBuyer.name);
+  const address = sanitizeBuyerField(rawBuyer.address);
+
+  if (!name || !address) return { valid: false };
+
+  return { valid: true, buyer: { name, address } };
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -53,6 +89,19 @@ exports.handler = async (event) => {
       amount += known.price * Math.max(1, parseInt(item.quantity, 10) || 1);
     }
     const allExemptFromShipping = items.every((item) => PRICES[item.handle]?.noShipping);
+
+    // Validazione server-side dell'indirizzo buyer, PRIMA di addebitare la
+    // carta. Se il carrello richiede una spedizione fisica, un buyer
+    // mancante o malformato blocca l'addebito (i dati verrebbero comunque
+    // usati per spedire il prodotto).
+    const buyerCheck = validateBuyer(buyer);
+    if (!buyerCheck.valid) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Indirizzo di spedizione non valido' }) };
+    }
+    if (!allExemptFromShipping && !buyerCheck.buyer) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Indirizzo di spedizione mancante' }) };
+    }
+    const validatedBuyer = buyerCheck.buyer;
     const testOverride = items.every((item) => typeof PRICES[item.handle]?.testShippingOverride === 'number')
       ? PRICES[items[0].handle].testShippingOverride
       : undefined;
@@ -78,7 +127,17 @@ exports.handler = async (event) => {
       // Decremento scorte solo ORA che l'addebito è confermato riuscito.
       // Chiave idempotenza = id del paymentIntent, per sicurezza in caso di retry.
       try {
-        await decrementStockOnce(paymentIntent.id, items);
+        const stockResult = await decrementStockOnce(paymentIntent.id, items);
+        if (!stockResult.ok) {
+          console.error('Scorte esaurite a metà ordine (Google Pay), paymentIntent:', paymentIntent.id, 'dettagli:', stockResult);
+          await sendStockAlertEmail({
+            source: 'google-pay-charge',
+            idempotencyKey: paymentIntent.id,
+            handle: stockResult.handle,
+            remaining: stockResult.remaining,
+            items,
+          });
+        }
       } catch (err) {
         console.error('Errore nel decremento scorte Google Pay:', err);
         // Il pagamento è già riuscito, non blocchiamo la risposta per un problema di scorte.
@@ -112,7 +171,7 @@ exports.handler = async (event) => {
         orderId,
         items: orderItems,
         total: amount,
-        buyer: buyer || null,
+        buyer: validatedBuyer,
         accessToken,
       });
 
