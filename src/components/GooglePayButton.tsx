@@ -17,6 +17,7 @@ interface Props {
   total: number;
   country: string;
   onSuccess: (orderId: string, accessToken: string, buyer?: Buyer) => void;
+  onError?: (message: string) => void;
 }
 
 // SEGNAPOSTO: la chiave pubblicabile Stripe è un dato PUBBLICO (non un segreto), va bene
@@ -59,7 +60,7 @@ const cardPaymentMethod = {
   tokenizationSpecification,
 };
 
-export default function GooglePayButton({ items, total, country, onSuccess }: Props) {
+export default function GooglePayButton({ items, total, country, onSuccess, onError }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<any>(null);
 
@@ -141,14 +142,16 @@ export default function GooglePayButton({ items, total, country, onSuccess }: Pr
         });
 
         const data = await res.json();
-        if (data.success) {
-          onSuccess(data.orderId, data.accessToken, buyer);
+        if (!res.ok || !data.success) {
+          onError?.(data.error || 'Impossibile completare il pagamento con Google Pay.');
+          return;
         }
+        onSuccess(data.orderId, data.accessToken, buyer);
       } catch (err: any) {
-        // L'utente ha chiuso la finestra Google Pay, oppure errore: non facciamo nulla di rumoroso.
-        if (err?.statusCode !== 'CANCELED') {
-          console.error('Google Pay error:', err);
-        }
+        // L'utente ha chiuso la finestra Google Pay: comportamento normale, nessun errore da mostrare.
+        if (err?.statusCode === 'CANCELED') return;
+        console.error('Google Pay error:', err);
+        onError?.('Qualcosa è andato storto con Google Pay. Riprova o usa un altro metodo di pagamento.');
       }
     };
 

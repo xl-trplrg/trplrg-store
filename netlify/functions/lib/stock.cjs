@@ -15,6 +15,11 @@ const INITIAL_STOCK = {
   'xl-felpa': 200,
 };
 
+// Limite di buonsenso per riga d'ordine (somma tutte le taglie dello stesso
+// prodotto): evita carrelli assurdi (es. 99 pezzi) indipendentemente dalle
+// scorte reali. Cambialo qui se serve un numero diverso.
+const MAX_PER_PRODUCT = 10;
+
 const { getStore } = require('@netlify/blobs');
 
 function getStockStore() {
@@ -155,4 +160,15 @@ async function decrementStockOnce(idempotencyKey, items) {
   return result;
 }
 
-module.exports = { hasEnoughStock, decrementStockOnce };
+// Controllo indipendente dalle scorte: blocca quantità assurde per riga
+// prodotto prima ancora di guardare il magazzino. Va chiamato insieme a
+// hasEnoughStock, prima di avviare un pagamento.
+function exceedsMaxPerProduct(items) {
+  const totals = sumQuantitiesByHandle(items);
+  for (const [handle, qty] of Object.entries(totals)) {
+    if (qty > MAX_PER_PRODUCT) return { ok: false, handle, max: MAX_PER_PRODUCT };
+  }
+  return { ok: true };
+}
+
+module.exports = { hasEnoughStock, decrementStockOnce, exceedsMaxPerProduct, MAX_PER_PRODUCT };

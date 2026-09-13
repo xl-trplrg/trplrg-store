@@ -10,7 +10,7 @@ const Stripe = require('stripe');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
-const { hasEnoughStock, decrementStockOnce } = require('./lib/stock.cjs');
+const { hasEnoughStock, decrementStockOnce, exceedsMaxPerProduct } = require('./lib/stock.cjs');
 
 // Stessa fonte di verità prezzi usata da create-checkout-session.cjs.
 // Se aggiorni un prezzo in un posto, aggiornalo anche nell'altro.
@@ -30,6 +30,12 @@ exports.handler = async (event) => {
     }
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    }
+
+    // Quantità assurde bloccate a prescindere dalle scorte disponibili.
+    const qtyCheck = exceedsMaxPerProduct(items);
+    if (!qtyCheck.ok) {
+      return { statusCode: 400, body: JSON.stringify({ error: `Massimo ${qtyCheck.max} pezzi per prodotto`, handle: qtyCheck.handle }) };
     }
 
     // Controllo scorte PRIMA di addebitare la carta: qui il pagamento è

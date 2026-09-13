@@ -33,8 +33,37 @@
 
 .footer__form {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   max-width: 420px;
+}
+
+.footer__form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.footer__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.footer__consent input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.footer__consent a {
+  color: var(--fg);
+  text-decoration: underline;
 }
 
 .footer__error {
@@ -43,7 +72,7 @@
   margin-top: 8px;
 }
 
-.footer__form input {
+.footer__form input[type="email"] {
   flex: 1;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -55,7 +84,7 @@
   color: var(--fg);
 }
 
-.footer__form input:focus {
+.footer__form input[type="email"]:focus {
   border-color: var(--fg);
 }
 

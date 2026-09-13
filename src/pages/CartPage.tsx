@@ -153,8 +153,8 @@ export default function CartPage() {
           </button>
 
           <div className="cart-page__wallets-wrap">
-            <PayPalButton items={items} total={grandTotal} shippingCost={shippingCost} country={country} onSuccess={handleWalletSuccess} />
-            <GooglePayButton items={items} total={grandTotal} country={country} onSuccess={handleWalletSuccess} />
+            <PayPalButton items={items} total={grandTotal} shippingCost={shippingCost} country={country} onSuccess={handleWalletSuccess} onError={setError} />
+            <GooglePayButton items={items} total={grandTotal} country={country} onSuccess={handleWalletSuccess} onError={setError} />
           </div>
 
           <Link to="/" className="cart-page__continue">Continua lo shopping</Link>

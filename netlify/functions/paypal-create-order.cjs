@@ -7,7 +7,7 @@
 
 const { getPayPalAccessToken } = require('./lib/paypal-client.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
-const { hasEnoughStock } = require('./lib/stock.cjs');
+const { hasEnoughStock, exceedsMaxPerProduct } = require('./lib/stock.cjs');
 const { savePendingItems } = require('./lib/pending-paypal-items.cjs');
 
 // Stessa fonte di verità prezzi usata da Stripe e Google Pay.
@@ -23,6 +23,12 @@ exports.handler = async (event) => {
 
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    }
+
+    // Quantità assurde bloccate a prescindere dalle scorte disponibili.
+    const qtyCheck = exceedsMaxPerProduct(items);
+    if (!qtyCheck.ok) {
+      return { statusCode: 400, body: JSON.stringify({ error: `Massimo ${qtyCheck.max} pezzi per prodotto`, handle: qtyCheck.handle }) };
     }
 
     // Controllo scorte PRIMA di creare l'ordine PayPal.

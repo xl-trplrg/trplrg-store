@@ -5,6 +5,7 @@ import './Footer.css';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
+  const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +19,7 @@ export default function Footer() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || loading) return;
+    if (!email.trim() || !consent || loading) return;
 
     setLoading(true);
     setError('');
@@ -34,6 +35,7 @@ export default function Footer() {
 
       setSubmitted(true);
       setEmail('');
+      setConsent(false);
     } catch {
       setError('Qualcosa è andato storto. Riprova tra poco.');
     } finally {
@@ -51,16 +53,30 @@ export default function Footer() {
             </h2>
             {!submitted && (
               <form className="footer__form" onSubmit={submit}>
-                <input
-                  type="email"
-                  placeholder="La tua email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-                <button type="submit" className="footer__submit" disabled={loading}>
-                  {loading ? 'Invio...' : 'Iscriviti'}
-                </button>
+                <div className="footer__form-row">
+                  <input
+                    type="email"
+                    placeholder="La tua email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                  />
+                  <button type="submit" className="footer__submit" disabled={loading || !consent}>
+                    {loading ? 'Invio...' : 'Iscriviti'}
+                  </button>
+                </div>
+                <label className="footer__consent">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={e => setConsent(e.target.checked)}
+                    required
+                  />
+                  <span>
+                    Accetto di ricevere comunicazioni via email da TRPLRG, secondo la{' '}
+                    <Link to="/privacy">informativa sulla privacy</Link>.
+                  </span>
+                </label>
               </form>
             )}
             {error && <p className="footer__error">{error}</p>}

@@ -18,6 +18,7 @@ interface Props {
   shippingCost?: number;
   country?: string;
   onSuccess: (orderId: string, accessToken: string, buyer?: Buyer) => void;
+  onError?: (message: string) => void;
 }
 
 // SEGNAPOSTO: il Client ID PayPal è un dato PUBBLICO (non un segreto), va bene metterlo nel
@@ -25,7 +26,7 @@ interface Props {
 // (usa "Live" quando sei pronto a incassare davvero, "Sandbox" per fare prove).
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'YOUR_PAYPAL_CLIENT_ID';
 
-export default function PayPalButton({ items, total, shippingCost = 0, country, onSuccess }: Props) {
+export default function PayPalButton({ items, total, shippingCost = 0, country, onSuccess, onError }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +63,9 @@ export default function PayPalButton({ items, total, shippingCost = 0, country, 
                 });
                 if (!res.ok) {
                   const err = await res.json().catch(() => ({}));
-                  throw new Error(err.error || 'Impossibile creare l\'ordine PayPal');
+                  const message = err.error || 'Impossibile creare l\'ordine PayPal';
+                  onError?.(message);
+                  throw new Error(message);
                 }
                 const data = await res.json();
                 return data.orderID;
@@ -77,10 +80,18 @@ export default function PayPalButton({ items, total, shippingCost = 0, country, 
                 });
                 if (!res.ok) {
                   const err = await res.json().catch(() => ({}));
-                  throw new Error(err.error || 'Impossibile completare il pagamento PayPal');
+                  const message = err.error || 'Impossibile completare il pagamento PayPal';
+                  onError?.(message);
+                  throw new Error(message);
                 }
                 const result = await res.json();
                 onSuccess(result.orderId, result.accessToken, result.buyer ?? undefined);
+              },
+              onError: (err: any) => {
+                // Errori della SDK PayPal stessa (rete, popup, ecc.), non già
+                // gestiti sopra da createOrder/onApprove.
+                console.error('PayPal SDK error:', err);
+                onError?.('Qualcosa è andato storto con PayPal. Riprova o usa un altro metodo di pagamento.');
               },
             })
             .render(containerRef.current);

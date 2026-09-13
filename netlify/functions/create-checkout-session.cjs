@@ -8,7 +8,7 @@
 const Stripe = require('stripe');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
-const { hasEnoughStock } = require('./lib/stock.cjs');
+const { hasEnoughStock, exceedsMaxPerProduct } = require('./lib/stock.cjs');
 
 // IMPORTANTE: questa lista prezzi è la fonte di verità server-side.
 // Deve restare identica a src/data/products.ts (handle + price), altrimenti i totali non torneranno.
@@ -26,6 +26,12 @@ exports.handler = async (event) => {
 
     if (!Array.isArray(items) || items.length === 0) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Carrello vuoto' }) };
+    }
+
+    // Quantità assurde bloccate a prescindere dalle scorte disponibili.
+    const qtyCheck = exceedsMaxPerProduct(items);
+    if (!qtyCheck.ok) {
+      return { statusCode: 400, body: JSON.stringify({ error: `Massimo ${qtyCheck.max} pezzi per prodotto`, handle: qtyCheck.handle }) };
     }
 
     // Controllo scorte PRIMA di creare la sessione Stripe: se un prodotto è

@@ -27,12 +27,25 @@ type CartAction =
 
 const STORAGE_KEY = 'xl-cart';
 
+// Stesso limite imposto anche lato server (vedi netlify/functions/lib/stock.cjs).
+// Tenuto qui separato: se cambia uno dei due, l'altro va aggiornato a mano.
+const MAX_PER_PRODUCT = 10;
+
+// Somma le quantità già in carrello per lo stesso prodotto, taglie comprese.
+function totalForHandle(items: CartItem[], handle: string) {
+  return items.reduce((sum, i) => (i.product.handle === handle ? sum + i.quantity : sum), 0);
+}
+
 function reducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD': {
-      const qty = action.quantity ?? 1;
       const key = lineKey(action.product.handle, action.size);
       const existing = state.items.find(i => lineKey(i.product.handle, i.size) === key);
+      const currentTotal = totalForHandle(state.items, action.product.handle);
+      const requested = action.quantity ?? 1;
+      const allowed = Math.max(0, MAX_PER_PRODUCT - currentTotal);
+      const qty = Math.min(requested, allowed);
+      if (qty <= 0) return state;
       const items = existing
         ? state.items.map(i =>
             lineKey(i.product.handle, i.size) === key
@@ -44,17 +57,25 @@ function reducer(state: CartState, action: CartAction): CartState {
     }
     case 'REMOVE':
       return { ...state, items: state.items.filter(i => lineKey(i.product.handle, i.size) !== lineKey(action.handle, action.size)) };
-    case 'SET_QTY':
+    case 'SET_QTY': {
+      const key = lineKey(action.handle, action.size);
+      const otherLinesTotal = state.items.reduce(
+        (sum, i) => (i.product.handle === action.handle && lineKey(i.product.handle, i.size) !== key ? sum + i.quantity : sum),
+        0
+      );
+      const allowed = Math.max(0, MAX_PER_PRODUCT - otherLinesTotal);
+      const clampedQty = Math.min(action.quantity, allowed);
       return {
         ...state,
         items: state.items
           .map(i =>
-            lineKey(i.product.handle, i.size) === lineKey(action.handle, action.size)
-              ? { ...i, quantity: action.quantity }
+            lineKey(i.product.handle, i.size) === key
+              ? { ...i, quantity: clampedQty }
               : i
           )
           .filter(i => i.quantity > 0),
       };
+    }
     case 'CLEAR':
       return { ...state, items: [] };
     case 'OPEN':
