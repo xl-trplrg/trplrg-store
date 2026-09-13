@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { InstagramIcon, ChevronDownIcon } from './Icons';
+import { InstagramIcon, YoutubeIcon, ChevronDownIcon } from './Icons';
 import './Footer.css';
 
 export default function Footer() {
@@ -85,6 +85,9 @@ export default function Footer() {
           <div className="footer__social">
             <a href="https://instagram.com/trplrg" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
               <InstagramIcon size={24} />
+            </a>
+            <a href="https://www.youtube.com/@XLTRPLRG" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+              <YoutubeIcon size={24} />
             </a>
           </div>
         </div>

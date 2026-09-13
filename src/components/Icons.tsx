@@ -57,6 +57,15 @@ export function InstagramIcon({ size = 20, className }: IconProps) {
   );
 }
 
+export function YoutubeIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
+      <path d="M21.6 7.2c-.25-1-1-1.75-2-2C17.9 4.7 12 4.7 12 4.7s-5.9 0-7.6.5c-1 .25-1.75 1-2 2C2 8.9 2 12 2 12s0 3.1.4 4.8c.25 1 1 1.75 2 2 1.7.5 7.6.5 7.6.5s5.9 0 7.6-.5c1-.25 1.75-1 2-2C22 15.1 22 12 22 12s0-3.1-.4-4.8Z" strokeLinejoin="round" />
+      <path d="m10 9.5 5 2.5-5 2.5v-5Z" strokeLinejoin="round" strokeLinecap="round" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function FacebookIcon({ size = 20, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
