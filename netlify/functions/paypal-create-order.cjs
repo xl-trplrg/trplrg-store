@@ -53,13 +53,14 @@ exports.handler = async (event) => {
     const itemTotal = paypalItems.reduce((sum, i) => sum + i._lineTotal, 0);
 
     // Stessa logica di esenzione/override spedizione già usata da Stripe e Google Pay.
-    // Se non arriva un country (es. acquisto diretto dalla pagina prodotto, che oggi
-    // non gestisce la spedizione), la spedizione resta 0 — comportamento invariato.
+    // Se non arriva un country valido, NON regaliamo la spedizione: getShippingCost
+    // ricade da sola sulla fascia "resto del mondo" (35€) per qualsiasi country
+    // mancante o non mappato — stesso comportamento già in uso su Google Pay.
     const allExemptFromShipping = items.every((item) => PRICES[item.handle]?.noShipping);
     const testOverride = items.every((item) => typeof PRICES[item.handle]?.testShippingOverride === 'number')
       ? PRICES[items[0].handle].testShippingOverride
       : undefined;
-    const shippingCost = (!country || allExemptFromShipping)
+    const shippingCost = allExemptFromShipping
       ? 0
       : (testOverride ?? getShippingCost(country));
 

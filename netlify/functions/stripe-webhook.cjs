@@ -74,19 +74,16 @@ exports.handler = async (event) => {
 
         const orderId = session.metadata?.orderId || null;
 
-        // Decremento scorte SOLO qui: è l'unico punto server-side che conferma
-        // in modo affidabile "questo pagamento è andato a buon fine", con
-        // protezione da doppio decremento se Stripe ripete lo stesso evento
-        // (usa session.id come chiave, quindi anche in caso di retry decrementa una volta sola).
-        try {
-          const stockItems = JSON.parse(session.metadata?.stockItems || '[]');
-          if (Array.isArray(stockItems) && stockItems.length > 0) {
-            await decrementStockOnce(session.id, stockItems);
-          }
-        } catch (err) {
-          console.error('Errore nel decremento scorte dal webhook Stripe:', err);
-          // Non blocchiamo mai la risposta a Stripe per un problema di scorte:
-          // il pagamento è già confermato, va gestito manualmente se serve.
+        // Decremento scorte E salvataggio ordine sono entrambi IDEMPOTENTI
+        // (chiave session.id): se Stripe ripete lo stesso evento, il primo
+        // non scala due volte (marker "processed:"), il secondo sovrascrive
+        // gli stessi dati senza effetti collaterali. Per questo, se uno dei
+        // due fallisce, è SICURO far ritentare Stripe rispondendo 500 —
+        // molto meglio che perdere il dato in silenzio con un log che
+        // nessuno legge.
+        const stockItems = JSON.parse(session.metadata?.stockItems || '[]');
+        if (Array.isArray(stockItems) && stockItems.length > 0) {
+          await decrementStockOnce(session.id, stockItems);
         }
 
         await saveStripeConfirmedOrder(session.id, {
@@ -97,9 +94,12 @@ exports.handler = async (event) => {
           buyer,
         });
       } catch (err) {
-        console.error('Errore nel recuperare/salvare i dettagli ordine dal webhook:', err);
-        // Non falliamo mai la risposta a Stripe per un problema di salvataggio:
-        // altrimenti Stripe ritenta lo stesso evento più volte inutilmente.
+        console.error('Errore nel webhook Stripe (scorte o salvataggio ordine):', err);
+        // 500 volontario: Stripe ritenterà questo stesso evento più tardi.
+        // Il pagamento resta comunque confermato lato Stripe — qui stiamo
+        // solo segnalando "riprova a consegnarmi l'evento", non un problema
+        // di pagamento.
+        return { statusCode: 500, body: JSON.stringify({ error: 'Elaborazione fallita, riprovare' }) };
       }
     }
   }

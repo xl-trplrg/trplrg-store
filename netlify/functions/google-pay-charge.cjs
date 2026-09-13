@@ -106,7 +106,7 @@ exports.handler = async (event) => {
       });
       // Stesso token casuale usato per gli ordini PayPal (vedi generate-order-id.cjs):
       // protegge get-order-by-id.cjs dall'enumerazione dell'orderId.
-      const accessToken = crypto.randomBytes(4).toString('hex');
+      const accessToken = crypto.randomBytes(16).toString('hex');
 
       await saveOrderDetails(orderId, {
         orderId,

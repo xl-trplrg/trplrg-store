@@ -126,7 +126,7 @@ exports.handler = async (event) => {
 
     // Stesso token casuale usato per gli ordini Stripe/Google Pay: protegge
     // get-order-by-id.cjs dall'enumerazione dell'orderId.
-    const accessTokenForOrder = crypto.randomBytes(4).toString('hex');
+    const accessTokenForOrder = crypto.randomBytes(16).toString('hex');
 
     await saveOrderDetails(orderId, {
       orderId,

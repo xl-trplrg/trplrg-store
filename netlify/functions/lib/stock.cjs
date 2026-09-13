@@ -1,9 +1,10 @@
-// Scorte per prodotto, salvate su Netlify Blobs con lo stesso meccanismo già
-// usato per il numero d'ordine progressivo (vedi lib/order-id.cjs): non è un
-// lock atomico vero (richiederebbe un database con transazioni), ma con un
-// controllo prima del pagamento + un decremento con verifica dopo, il rischio
-// di vendere due volte l'ultimo pezzo resta molto basso per un negozio di
-// queste dimensioni.
+// Scorte per prodotto, salvate su Netlify Blobs. Le scritture sono ATOMICHE:
+// ogni decremento usa una scrittura condizionata all'etag letto un attimo
+// prima (onlyIfMatch/onlyIfNew, supportate nativamente da Netlify Blobs). Se
+// un'altra richiesta concorrente ha già scritto nel frattempo, la scrittura
+// viene rifiutata esplicitamente (non sovrascritta alla cieca) e si ritenta
+// con il valore fresco — due acquisti simultanei dell'ultimo pezzo non
+// possono più passare entrambi.
 //
 // SCORTE INIZIALI — aggiorna qui se cambiano le quantità fisiche disponibili.
 // Le taglie di maglietta/felpa NON sono tracciate separatamente: è un totale
@@ -31,15 +32,24 @@ function getStockStore() {
   return getStore('stock');
 }
 
-async function readCurrent(store, handle) {
+async function readCurrentWithEtag(store, handle) {
   try {
-    const existing = await store.get(handle, { type: 'json' });
-    if (typeof existing === 'number') return existing;
+    const entry = await store.getWithMetadata(handle, { type: 'json' });
+    if (entry && typeof entry.data === 'number') {
+      return { value: entry.data, etag: entry.etag };
+    }
   } catch {
     // Blobs non raggiungibile: trattiamo come "scorta iniziale" per non
     // bloccare un acquisto per un problema di lettura.
   }
-  return INITIAL_STOCK[handle];
+  // Chiave mai creata: valore di partenza è INITIAL_STOCK, nessun etag
+  // (la prima scrittura per questo handle userà onlyIfNew, non onlyIfMatch).
+  return { value: INITIAL_STOCK[handle], etag: null };
+}
+
+async function readCurrent(store, handle) {
+  const { value } = await readCurrentWithEtag(store, handle);
+  return value;
 }
 
 // Somma le quantità richieste per handle. Un carrello con più taglie della
@@ -83,40 +93,59 @@ async function decrementStock(items) {
     let succeeded = false;
     let lastKnown = INITIAL_STOCK[handle];
 
-    for (let attempt = 0; attempt < 3 && !succeeded; attempt++) {
-      const current = await readCurrent(store, handle);
+    // Scrittura atomica condizionata: ogni tentativo rilegge il valore E il
+    // suo etag, poi scrive SOLO se nessun altro ha modificato la chiave nel
+    // frattempo (onlyIfMatch/onlyIfNew). Se un'altra richiesta concorrente ha
+    // scritto per prima, questa scrittura fallisce esplicitamente (non
+    // sovrascrive alla cieca) e si ritenta con il valore fresco — a
+    // differenza di un semplice "leggi poi scrivi", qui due acquisti
+    // simultanei dell'ultimo pezzo non possono più passare entrambi.
+    for (let attempt = 0; attempt < 5 && !succeeded; attempt++) {
+      const { value: current, etag } = await readCurrentWithEtag(store, handle);
       lastKnown = current;
 
       if (current < qty) break; // esaurito in questo istante: usciamo, gestito sotto
 
       const next = current - qty;
-      await store.setJSON(handle, next);
+      const writeOptions = etag ? { onlyIfMatch: etag } : { onlyIfNew: true };
 
+      let result;
       try {
-        const verify = await store.get(handle, { type: 'json' });
-        if (verify === next) {
-          succeeded = true;
-          break;
-        }
-      } catch {
-        succeeded = true; // scrittura andata a buon fine, verifica non disponibile
+        result = await store.setJSON(handle, next, writeOptions);
+      } catch (err) {
+        console.error('Errore di scrittura scorte per', handle, err);
+        result = null;
+      }
+
+      if (result && result.modified !== false) {
+        succeeded = true;
         break;
       }
 
-      if (attempt < 2) {
-        await new Promise((r) => setTimeout(r, 30 + Math.floor(Math.random() * 50)));
+      // Scrittura rifiutata: un'altra richiesta ha modificato la chiave nel
+      // frattempo (o l'ha creata per prima). Piccola attesa casuale, poi si
+      // rilegge il valore vero al prossimo giro invece di ripartire da uno stantio.
+      if (attempt < 4) {
+        await new Promise((r) => setTimeout(r, 20 + Math.floor(Math.random() * 60)));
       }
     }
 
     if (succeeded) {
       applied.push({ handle, qty });
     } else {
-      // Esaurito a metà ordine: ripristiniamo quanto già scalato per gli altri
-      // articoli dello STESSO ordine. O va scalato tutto, o niente.
+      // Esaurito a metà ordine, o troppi tentativi in conflitto: ripristiniamo
+      // quanto già scalato per gli altri articoli dello STESSO ordine.
+      // O va scalato tutto, o niente.
       for (const done of applied) {
         try {
-          const current = await readCurrent(store, done.handle);
-          await store.setJSON(done.handle, current + done.qty);
+          // Anche il ripristino usa una scrittura condizionata, per lo stesso motivo.
+          for (let r = 0; r < 5; r++) {
+            const { value: cur, etag: curEtag } = await readCurrentWithEtag(store, done.handle);
+            const restored = cur + done.qty;
+            const opts = curEtag ? { onlyIfMatch: curEtag } : { onlyIfNew: true };
+            const res = await store.setJSON(done.handle, restored, opts);
+            if (res && res.modified !== false) break;
+          }
         } catch (err) {
           console.error('Errore nel ripristino scorte dopo esaurimento parziale:', err);
         }
