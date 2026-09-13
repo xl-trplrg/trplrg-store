@@ -1,0 +1,21 @@
+# Dipendenze
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+
+# Variabili d'ambiente — non committare MAI segreti reali
+.env
+.env.local
+.env.*.local
+
+# Netlify
+.netlify/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.log
+npm-debug.log*
