@@ -54,15 +54,31 @@ function buildSuffix(items) {
     .join('');
 }
 
+// Legge il contatore del giorno insieme al suo etag, stesso pattern già usato
+// e verificato in lib/stock.cjs. Nessun etag = chiave mai creata per oggi
+// (la prima scrittura userà onlyIfNew invece di onlyIfMatch).
+async function readCounterWithEtag(store, dateKey) {
+  try {
+    const entry = await store.getWithMetadata(dateKey, { type: 'json' });
+    if (entry && typeof entry.data === 'number') {
+      return { value: entry.data, etag: entry.etag };
+    }
+  } catch {
+    // Blobs non raggiungibile in lettura: trattiamo come contatore a zero,
+    // la scrittura condizionata sotto si occuperà comunque di non
+    // sovrascrivere alla cieca se nel frattempo la chiave viene creata.
+  }
+  return { value: 0, etag: null };
+}
+
 async function generateOrderId(items) {
   const { mm, dd, yy } = datePartsRome();
   const dateKey = `${yy}-${mm}-${dd}`;
 
   // Fallback robusto: usato quando Blobs è irraggiungibile OPPURE quando,
-  // dopo 3 tentativi, non siamo mai riusciti a CONFERMARE che il valore
-  // scritto fosse davvero il nostro (scritture concorrenti che si accavallano
-  // in continuazione). In quel caso NON dobbiamo comunque usare `next`: è un
-  // numero che potremmo non aver mai davvero "vinto", quindi rischia di
+  // dopo 5 tentativi, la scrittura condizionata non è mai riuscita a vincere
+  // la corsa (conflitto continuo con altri ordini nello stesso istante). In
+  // quel caso NON dobbiamo comunque inventarci un numero: rischierebbe di
   // duplicare il progressivo di un altro ordine dello stesso giorno.
   // Il vecchio fallback Date.now().slice(-3) aveva solo 3 cifre decimali
   // (1000 valori possibili, si ripete più volte al giorno): qui usiamo
@@ -76,47 +92,48 @@ async function generateOrderId(items) {
   let progressive = '000';
   try {
     const store = getOrderCountersStore();
-    // Mitigazione race condition: se due acquisti arrivano nello stesso istante,
-    // rileggiamo il valore fresco ad ogni tentativo invece di fidarci di una
-    // lettura fatta prima. Non è un lock atomico vero (richiederebbe un database
-    // con transazioni), ma per pochi ordini/giorno riduce il rischio di ID
-    // duplicati quasi a zero. In ogni caso un eventuale ID duplicato è solo
-    // un problema di etichetta leggibile: non influisce sull'addebito reale.
+
+    // Scrittura atomica condizionata (stesso pattern, verificato, di
+    // lib/stock.cjs): ogni tentativo rilegge il valore E il suo etag, poi
+    // scrive SOLO se nessun altro ha modificato la chiave nel frattempo
+    // (onlyIfMatch/onlyIfNew). Se un'altra richiesta concorrente scrive per
+    // prima, questa scrittura viene rifiutata esplicitamente dal backend
+    // (non è più un "leggi poi scrivi" con verifica a posteriori) e si
+    // riprova con il valore fresco. Due ordini nello stesso istante non
+    // possono più ricevere lo stesso progressivo.
+    let succeeded = false;
     let next = 1;
-    let verified = false;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      let current = 0;
-      try {
-        const existing = await store.get(dateKey, { type: 'json' });
-        if (typeof existing === 'number') current = existing;
-      } catch {
-        current = 0;
-      }
+
+    for (let attempt = 0; attempt < 5 && !succeeded; attempt++) {
+      const { value: current, etag } = await readCounterWithEtag(store, dateKey);
       next = current + 1;
-      await store.setJSON(dateKey, next);
+      const writeOptions = etag ? { onlyIfMatch: etag } : { onlyIfNew: true };
 
-      // Verifica che nessuno abbia scritto sopra di noi nel frattempo.
-      // Se il valore letto ora è quello che abbiamo appena scritto, ci fermiamo
-      // qui — altrimenti c'è stata una scrittura concorrente e riproviamo.
+      let result;
       try {
-        const verify = await store.get(dateKey, { type: 'json' });
-        if (verify === next) {
-          verified = true;
-          break;
-        }
-      } catch {
-        // Lettura di verifica fallita: non possiamo confermare che `next` sia
-        // davvero nostro, quindi NON usciamo dichiarando successo — lasciamo
-        // che il ciclo esaurisca i tentativi (o riprovi) come un normale conflitto.
+        result = await store.setJSON(dateKey, next, writeOptions);
+      } catch (err) {
+        console.error('Errore di scrittura contatore ordini per', dateKey, err);
+        result = null;
       }
 
-      if (attempt < 2) {
-        await new Promise((r) => setTimeout(r, 30 + Math.floor(Math.random() * 50)));
+      if (result && result.modified !== false) {
+        succeeded = true;
+        break;
+      }
+
+      // Scrittura rifiutata: un altro ordine ha scritto per primo nello
+      // stesso istante. Piccola attesa casuale, poi si riprova rileggendo
+      // il valore vero invece di ripartire da uno stantio.
+      if (attempt < 4) {
+        await new Promise((r) => setTimeout(r, 20 + Math.floor(Math.random() * 60)));
       }
     }
-    // Dopo 3 tentativi senza una verifica confermata, `next` non è affidabile:
-    // usiamo il fallback robusto invece di rischiare un progressivo duplicato.
-    progressive = verified ? String(next).padStart(3, '0') : robustFallbackProgressive();
+
+    // Dopo 5 tentativi senza riuscire a vincere la scrittura condizionata,
+    // `next` non è affidabile: usiamo il fallback robusto invece di
+    // rischiare un progressivo duplicato.
+    progressive = succeeded ? String(next).padStart(3, '0') : robustFallbackProgressive();
   } catch (err) {
     // Logghiamo l'errore vero nei log della function Netlify (Netlify UI -> Functions -> logs)
     // così la prossima volta si vede subito perché Blobs non ha scritto nulla,
