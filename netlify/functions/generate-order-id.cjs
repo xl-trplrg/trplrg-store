@@ -7,6 +7,35 @@ const { generateOrderId } = require('./lib/order-id.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { PRICES } = require('./lib/prices.cjs');
 
+// Validazione/sanitizzazione del `buyer` ricevuto dal client, stessa logica
+// usata in google-pay-charge.cjs. Qui il buyer è opzionale (i download
+// digitali gratuiti chiamano questa funzione senza alcun buyer), quindi non
+// blocchiamo la richiesta se manca: puliamo solo la FORMA dei dati prima di
+// salvarli, per evitare che un client malevolo scriva su Blobs campi enormi
+// o con caratteri di controllo (es. a-capo, utilizzabili per header
+// injection se questo testo finisse mai in un'intestazione email).
+const MAX_BUYER_FIELD_LENGTH = 300;
+
+function sanitizeBuyerField(value) {
+  if (typeof value !== 'string') return '';
+  return value.replace(/[\r\n\t\x00-\x1F\x7F]+/g, ' ').trim().slice(0, MAX_BUYER_FIELD_LENGTH);
+}
+
+// Ritorna il buyer ripulito, oppure null se assente o senza la forma minima
+// attesa (in quel caso lo trattiamo come "nessun buyer", non blocchiamo
+// l'ordine: questa funzione non incassa soldi, l'addebito è già avvenuto
+// altrove prima che venga chiamata).
+function sanitizeBuyer(rawBuyer) {
+  if (rawBuyer === undefined || rawBuyer === null) return null;
+  if (typeof rawBuyer !== 'object' || Array.isArray(rawBuyer)) return null;
+
+  const name = sanitizeBuyerField(rawBuyer.name);
+  const address = sanitizeBuyerField(rawBuyer.address);
+
+  if (!name && !address) return null;
+  return { name, address };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -40,13 +69,17 @@ exports.handler = async (event) => {
     const itemsSum = orderItems.reduce((sum, i) => sum + i.amount, 0);
     const total = typeof clientTotal === 'number' && clientTotal >= itemsSum ? clientTotal : itemsSum;
 
-    // Token casuale imprevedibile: solo chi lo riceve in questa risposta (il vero
-    // acquirente, nel suo browser) può poi rileggere i dettagli di QUESTO ordine
-    // tramite get-order-by-id.cjs. Senza il token, conoscere/indovinare il solo
-    // orderId non basta più a leggere nome/indirizzo di un altro cliente.
-    const accessToken = crypto.randomBytes(4).toString('hex');
+    const sanitizedBuyer = sanitizeBuyer(buyer);
 
-    await saveOrderDetails(orderId, { orderId, items: orderItems, total, buyer: buyer || null, accessToken });
+    // Token casuale imprevedibile a 128 bit (16 byte): solo chi lo riceve in
+    // questa risposta (il vero acquirente, nel suo browser) può poi rileggere
+    // i dettagli di QUESTO ordine tramite get-order-by-id.cjs. Senza il
+    // token, conoscere/indovinare il solo orderId non basta più a leggere
+    // nome/indirizzo di un altro cliente. Stessa lunghezza usata in
+    // paypal-capture-order.cjs e google-pay-charge.cjs.
+    const accessToken = crypto.randomBytes(16).toString('hex');
+
+    await saveOrderDetails(orderId, { orderId, items: orderItems, total, buyer: sanitizedBuyer, accessToken });
 
     return { statusCode: 200, body: JSON.stringify({ orderId, accessToken }) };
   } catch (err) {
