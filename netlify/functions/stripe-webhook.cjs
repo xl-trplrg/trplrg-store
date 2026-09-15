@@ -113,7 +113,7 @@ exports.handler = async (event) => {
             const chargedCents = parseInt(session.metadata?.pricedShippingCents || '0', 10) || 0;
             const charged = chargedCents / 100;
             const shouldHaveBeen = getShippingCost(realCountry);
-            if (shouldHaveBeen > charged) {
+            if (shouldHaveBeen !== charged) {
               await sendShippingMismatchAlert({
                 source: 'stripe-webhook',
                 reference: session.id,

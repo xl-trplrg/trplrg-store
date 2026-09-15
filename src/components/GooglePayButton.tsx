@@ -33,7 +33,7 @@ const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
 // 4. Assicurarsi che VITE_STRIPE_PUBLISHABLE_KEY e STRIPE_SECRET_KEY (su Netlify) siano
 //    ENTRAMBE "live" (pk_live_... e sk_live_...) oppure ENTRAMBE "test" — non mischiate,
 //    altrimenti il pagamento viene rifiutato da Stripe.
-const ENVIRONMENT: 'TEST' | 'PRODUCTION' = 'PRODUCTION';
+const ENVIRONMENT: 'TEST' | 'PRODUCTION' = import.meta.env.VITE_GOOGLE_PAY_ENVIRONMENT === 'TEST' ? 'TEST' : 'PRODUCTION';
 
 const allowedCardNetworks = ['AMEX', 'DISCOVER', 'MASTERCARD', 'VISA'];
 const allowedCardAuthMethods = ['PAN_ONLY', 'CRYPTOGRAM_3DS'];
@@ -106,7 +106,7 @@ export default function GooglePayButton({ items, total, country, onSuccess, onEr
           allowedPaymentMethods: [cardPaymentMethod],
           merchantInfo: {
             merchantName: 'TRPLRG',
-            merchantId: 'BCR2DN7TTC2L3HZB',
+            merchantId: import.meta.env.VITE_GOOGLE_PAY_MERCHANT_ID || 'BCR2DN7TTC2L3HZB',
           },
           transactionInfo: {
             totalPriceStatus: 'FINAL',

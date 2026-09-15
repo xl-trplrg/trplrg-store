@@ -231,7 +231,7 @@ exports.handler = async (event) => {
       if (!allExemptFromShipping && realCountry && pricedCountry && realCountry !== pricedCountry) {
         const charged = getShippingCost(pricedCountry);
         const shouldHaveBeen = getShippingCost(realCountry);
-        if (shouldHaveBeen > charged) {
+        if (shouldHaveBeen !== charged) {
           await sendShippingMismatchAlert({
             source: 'paypal-capture-order',
             reference: orderID,

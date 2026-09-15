@@ -159,7 +159,7 @@ exports.handler = async (event) => {
         if (!allExemptFromShipping && shippingCountry && country && shippingCountry !== country) {
           const shouldHaveBeen = testOverride ?? getShippingCost(shippingCountry);
           const charged = testOverride ?? getShippingCost(country);
-          if (shouldHaveBeen > charged) {
+          if (shouldHaveBeen !== charged) {
             await sendShippingMismatchAlert({
               source: 'google-pay-charge',
               reference: paymentIntent.id,

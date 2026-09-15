@@ -68,30 +68,37 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Email non valida' }) };
     }
 
-    const response = await fetch('https://api.brevo.com/v3/contacts', {
+    // Double opt-in (GDPR): se BREVO_DOI_TEMPLATE_ID è impostata su Netlify, usiamo il
+    // flusso di conferma Brevo (il contatto entra in lista SOLO dopo il click sul link
+    // nella email di conferma). Se non è impostata, comportamento invariato (singolo opt-in).
+    const doiTemplateId = process.env.BREVO_DOI_TEMPLATE_ID;
+    const brevoUrl = doiTemplateId
+      ? 'https://api.brevo.com/v3/contacts/doubleOptinConfirmation'
+      : 'https://api.brevo.com/v3/contacts';
+    const brevoBody = doiTemplateId
+      ? { email: email.trim(), templateId: Number(doiTemplateId), redirectionUrl: 'https://trplrg.com/' }
+      : { email: email.trim(), listIds: [BREVO_LIST_ID], updateEnabled: true }; // se l'email esiste già, la aggiorna invece di dare errore
+
+    const response = await fetch(brevoUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'api-key': process.env.BREVO_API_KEY,
       },
-      body: JSON.stringify({
-        email: email.trim(),
-        listIds: [BREVO_LIST_ID],
-        updateEnabled: true, // se l'email esiste già, la aggiorna invece di dare errore
-      }),
+      body: JSON.stringify(brevoBody),
     });
 
     // Brevo risponde 204 (nessun contenuto) quando va tutto bene
     if (response.ok) {
-      return { statusCode: 200, body: JSON.stringify({ success: true }) };
+      return { statusCode: 200, body: JSON.stringify({ success: true, doi: !!doiTemplateId }) };
     }
 
     const data = await response.json().catch(() => ({}));
 
     // Se il contatto esiste già ed è identico, Brevo a volte risponde con questo codice: trattalo come successo
     if (data.code === 'duplicate_parameter') {
-      return { statusCode: 200, body: JSON.stringify({ success: true }) };
+      return { statusCode: 200, body: JSON.stringify({ success: true, doi: !!doiTemplateId }) };
     }
 
     return { statusCode: response.status, body: JSON.stringify({ error: data.message || 'Errore Brevo' }) };

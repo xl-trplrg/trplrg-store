@@ -91,6 +91,14 @@ exports.handler = async (event) => {
       quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
     }));
 
+    // Tripwire: i valori dei metadata Stripe hanno un limite rigido di 500 caratteri.
+    // Se il catalogo cresce e questo JSON lo supera, meglio un 400 chiaro ora
+    // che un 500 opaco da Stripe a checkout avviato.
+    const stockItemsJson = JSON.stringify(stockItems);
+    if (stockItemsJson.length > 450) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Carrello troppo grande per questo metodo di pagamento' }) };
+    }
+
     // Paese usato per calcolare la spedizione (scelto sul sito, PRIMA che
     // Stripe raccolga l'indirizzo vero nel suo form) e importo addebitato:
     // il webhook li confronta con l'indirizzo di spedizione reale una volta
@@ -103,7 +111,7 @@ exports.handler = async (event) => {
       line_items,
       metadata: {
         orderId,
-        stockItems: JSON.stringify(stockItems),
+        stockItems: stockItemsJson,
         pricedCountry: country || '',
         pricedShippingCents: String(pricedShippingCents),
       },

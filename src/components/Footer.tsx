@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { InstagramIcon, YoutubeIcon, ChevronDownIcon } from './Icons';
+import { InstagramIcon, YoutubeIcon } from './Icons';
 import './Footer.css';
 
 export default function Footer() {
@@ -9,6 +9,7 @@ export default function Footer() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [doi, setDoi] = useState(false);
   const { pathname } = useLocation();
 
   // La conferma "sei iscritto" è valida solo per questa pagina: cambiando pagina si resetta
@@ -33,6 +34,8 @@ export default function Footer() {
 
       if (!res.ok) throw new Error();
 
+      const data = await res.json().catch(() => ({}));
+      setDoi(!!data.doi);
       setSubmitted(true);
       setEmail('');
       setConsent(false);
@@ -49,7 +52,7 @@ export default function Footer() {
         <div className="footer__top">
           <div className="footer__newsletter">
             <h2 className="footer__heading">
-              {submitted ? 'Sei iscritto alla newsletter.' : 'Iscriviti alla newsletter per ricevere tutti gli aggiornamenti.'}
+              {submitted ? (doi ? 'Quasi fatto: controlla la tua email e clicca il link per confermare l\'iscrizione.' : 'Sei iscritto alla newsletter.') : 'Iscriviti alla newsletter per ricevere tutti gli aggiornamenti.'}
             </h2>
             {!submitted && (
               <form className="footer__form" onSubmit={submit}>
@@ -107,10 +110,6 @@ export default function Footer() {
               <img src="/icons/google-pay.svg" alt="Google Pay" className="footer__pay-icon" />
               <img src="/icons/apple-pay.svg" alt="Apple Pay" className="footer__pay-icon" />
               <img src="/icons/paypal.svg" alt="PayPal" className="footer__pay-icon" />
-            </div>
-            <div className="footer__country">
-              <span>Italia | EUR €</span>
-              <ChevronDownIcon size={14} />
             </div>
           </div>
         </div>

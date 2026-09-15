@@ -81,12 +81,13 @@ async function sendStockAlertEmail({ source, idempotencyKey, handle, remaining, 
 // così il venditore può decidere se richiedere la differenza al cliente,
 // assorbirla, o verificare che non sia un tentativo di sottofatturazione.
 async function sendShippingMismatchAlert({ source, reference, orderId, pricedCountry, realCountry, charged, shouldHaveBeen }) {
+  const direction = (typeof charged === 'number' && typeof shouldHaveBeen === 'number' && shouldHaveBeen > charged) ? 'sottostimata' : 'sovrastimata';
   const diff = (typeof charged === 'number' && typeof shouldHaveBeen === 'number')
-    ? (shouldHaveBeen - charged).toFixed(2)
+    ? Math.abs(shouldHaveBeen - charged).toFixed(2)
     : 'n/d';
 
   const textContent = [
-    `Un ordine pagato ha un indirizzo di spedizione reale diverso dal paese usato per calcolare la spedizione, con un costo corretto più alto di quello addebitato.`,
+    `Un ordine pagato ha un indirizzo di spedizione reale diverso dal paese usato per calcolare la spedizione: l'importo addebitato NON coincide con il costo corretto per l'indirizzo vero.`,
     ``,
     `Origine: ${source}`,
     `Riferimento ordine: ${orderId || 'n/d'}`,
@@ -95,12 +96,12 @@ async function sendShippingMismatchAlert({ source, reference, orderId, pricedCou
     `Paese reale dell'indirizzo di spedizione: ${realCountry || 'n/d'}`,
     `Spedizione addebitata: ${typeof charged === 'number' ? charged.toFixed(2) + ' €' : 'n/d'}`,
     `Spedizione corretta per il paese reale: ${typeof shouldHaveBeen === 'number' ? shouldHaveBeen.toFixed(2) + ' €' : 'n/d'}`,
-    `Differenza non addebitata: ${diff !== 'n/d' ? diff + ' €' : 'n/d'}`,
+    `Differenza: ${diff !== 'n/d' ? diff + ' €' : 'n/d'} (${direction === 'sottostimata' ? 'il cliente ha pagato MENO del dovuto' : 'il cliente ha pagato PIÙ del dovuto'})`,
     ``,
     `Azione richiesta: verificare l'ordine e decidere se contattare il cliente per la differenza di spedizione.`,
   ].join('\n');
 
-  await sendBrevoAlert(`[TRPLRG] Spedizione sottostimata — ordine ${orderId || reference || 'sconosciuto'}`, textContent);
+  await sendBrevoAlert(`[TRPLRG] Spedizione ${direction} — ordine ${orderId || reference || 'sconosciuto'}`, textContent);
 }
 
 module.exports = { sendStockAlertEmail, sendShippingMismatchAlert };
