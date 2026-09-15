@@ -31,6 +31,9 @@ function buildPage(route) {
   const image = escapeHtml(meta.image);
   const url = `https://trplrg.com${route === '/' ? '' : route}`;
 
+  if (!template.includes('<div id="root"></div>')) {
+    throw new Error(`Marcatore <div id="root"></div> non trovato nel template (rotta ${route}): prerender saltato in silenzio.`);
+  }
   let html = template.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
 
   // <title>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useSearchParams, Link } from 'react-router-dom';
 import { formatPrice } from '../data/products';
+import { useCart } from '../context/CartContext';
 import './OrderConfirmation.css';
 
 interface OrderItem {
@@ -30,6 +31,7 @@ export default function OrderConfirmation() {
   const orderIdParam = searchParams.get('order_id');
   const tokenParam = searchParams.get('token');
   const stateData = (location.state as OrderData | undefined) ?? null;
+  const { clear } = useCart();
 
   const [order, setOrder] = useState<OrderData | null>(stateData);
   const [loading, setLoading] = useState(!stateData && !!(sessionId || orderIdParam));
@@ -58,6 +60,7 @@ export default function OrderConfirmation() {
             setError(data.error);
           } else {
             setOrder(data);
+            clear();
             clearSensitiveParamsFromUrl();
           }
         })

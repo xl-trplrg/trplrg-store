@@ -85,6 +85,10 @@ export default function PayPalButton({ items, total, shippingCost = 0, country, 
                   throw new Error(message);
                 }
                 const result = await res.json();
+                if (result.success && !result.orderId) {
+                  onError?.(result.notice || 'Il pagamento risulta già elaborato. Se non vedi la conferma completa, contatta il supporto con il tuo numero PayPal.');
+                  return;
+                }
                 onSuccess(result.orderId, result.accessToken, result.buyer ?? undefined);
               },
               onError: (err: any) => {

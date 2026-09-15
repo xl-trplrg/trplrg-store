@@ -58,6 +58,14 @@ const DEFAULT_META: RouteMeta = {
   image: 'https://trplrg.com/brand/og-image.jpg',
 };
 
+const LEGAL_TITLES: Record<string, string> = {
+  '/recapiti': 'Contatti',
+  '/resi': 'Resi e Rimborsi',
+  '/termini': 'Termini di Servizio',
+  '/privacy': 'Privacy Policy',
+  '/cookie-policy': 'Cookie Policy',
+};
+
 export function getMeta(url: string): RouteMeta {
   if (url === '/') {
     return {
@@ -80,8 +88,9 @@ export function getMeta(url: string): RouteMeta {
     }
   }
 
-  // Pagine legali: stesso titolo/descrizione della home (comportamento
-  // identico a quello attuale, dove non impostano nulla di proprio).
+  if (LEGAL_TITLES[url]) {
+    return { title: `${LEGAL_TITLES[url]} — Troppo Largo`, description: DEFAULT_META.description, image: DEFAULT_META.image };
+  }
   return DEFAULT_META;
 }
 

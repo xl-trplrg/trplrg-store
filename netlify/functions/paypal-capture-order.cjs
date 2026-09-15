@@ -106,10 +106,15 @@ exports.handler = async (event) => {
 
       if (alreadyCaptured) {
         // PayPal conferma che è già stato incassato in una chiamata
-        // precedente. Se il nostro record non è ancora arrivato (piccolo
-        // ritardo di scrittura tra due richieste quasi simultanee),
-        // ritentiamo una volta la lettura prima di arrenderci.
-        const record = await getCaptureResult(orderID);
+        // precedente. La prima esecuzione potrebbe essere ancora in corso
+        // (decremento scorte, order-id lenti): rileggiamo il record con
+        // brevi attese prima di arrenderci.
+        let record = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          record = await getCaptureResult(orderID);
+          if (record) break;
+          await new Promise((r) => setTimeout(r, 500));
+        }
         if (record) {
           return {
             statusCode: 200,
