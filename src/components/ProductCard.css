@@ -5,7 +5,7 @@
 .product-card__media {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: var(--card-bg);
+  background: #ffffff;
   overflow: hidden;
   border-radius: var(--radius);
 }
@@ -20,6 +20,7 @@
   will-change: opacity;
   transform: translateZ(0);
   backface-visibility: hidden;
+  color: transparent;
 }
 
 .product-card__alt {

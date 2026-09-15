@@ -38,7 +38,7 @@
 .product-detail__main-img {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: var(--card-bg);
+  background: #ffffff;
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -49,6 +49,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  color: transparent;
 }
 
 .product-detail__main-img-el {
@@ -81,7 +82,7 @@
 .product-detail__thumb {
   width: 64px;
   height: 64px;
-  background: var(--card-bg);
+  background: #ffffff;
   border-radius: var(--radius);
   overflow: hidden;
   border: 2px solid transparent;
@@ -96,6 +97,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  color: transparent;
 }
 
 .product-detail__info {
