@@ -91,11 +91,22 @@ exports.handler = async (event) => {
       quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
     }));
 
+    // Paese usato per calcolare la spedizione (scelto sul sito, PRIMA che
+    // Stripe raccolga l'indirizzo vero nel suo form) e importo addebitato:
+    // il webhook li confronta con l'indirizzo di spedizione reale una volta
+    // pagato, per segnalare un'eventuale spedizione sottostimata.
+    const pricedShippingCents = allExemptFromShipping ? 0 : shippingCost;
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items,
-      metadata: { orderId, stockItems: JSON.stringify(stockItems) },
+      metadata: {
+        orderId,
+        stockItems: JSON.stringify(stockItems),
+        pricedCountry: country || '',
+        pricedShippingCents: String(pricedShippingCents),
+      },
       shipping_address_collection: {
         allowed_countries: [
           'IT', 'FR', 'DE', 'AT', 'NL', 'HR', 'HU', 'SI',

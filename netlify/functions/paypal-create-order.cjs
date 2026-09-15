@@ -110,10 +110,14 @@ exports.handler = async (event) => {
 
     const data = await response.json();
 
-    // Salviamo QUI gli articoli reali (validati sopra), associati all'orderID
-    // che sta per essere approvato — paypal-capture-order.cjs li rileggerà da
-    // qui invece di fidarsi di quello che arriva dal browser alla capture.
-    await savePendingItems(data.id, items);
+    // Salviamo QUI gli articoli reali (validati sopra) e il paese usato per
+    // calcolare la spedizione, associati all'orderID che sta per essere
+    // approvato — paypal-capture-order.cjs li rileggerà da qui invece di
+    // fidarsi di quello che arriva dal browser alla capture, e userà il
+    // paese per verificare che l'indirizzo di spedizione reale (raccolto da
+    // PayPal al momento dell'approvazione) non risulti più costoso di quanto
+    // addebitato.
+    await savePendingItems(data.id, items, country);
 
     return { statusCode: 200, body: JSON.stringify({ orderID: data.id }) };
   } catch (err) {

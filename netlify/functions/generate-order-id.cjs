@@ -6,6 +6,18 @@ const crypto = require('crypto');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { PRICES } = require('./lib/prices.cjs');
+const { createRateLimiter, getClientIp } = require('./lib/rate-limit.cjs');
+
+// Endpoint pubblico e non autenticato: senza un limite, chiunque può
+// chiamarlo ripetutamente per riempire lo storage ordini (Blobs) e bruciare
+// numeri del contatore giornaliero (buchi/ordini fantasma nella numerazione),
+// senza mai dover davvero pagare nulla. Il commento "chiamata SOLO dopo un
+// pagamento riuscito" nell'intestazione del file è solo un'assunzione sul
+// flusso previsto, non un controllo reale: questo limite è la prima difesa
+// concreta. 10 richieste al minuto per IP bastano ampiamente a un cliente
+// reale (anche con più acquisti/download rapidi) e rallentano di molto
+// qualsiasi abuso automatizzato.
+const isRateLimited = createRateLimiter({ windowMs: 60_000, max: 10 });
 
 // Validazione/sanitizzazione del `buyer` ricevuto dal client, stessa logica
 // usata in google-pay-charge.cjs. Qui il buyer è opzionale (i download
@@ -39,6 +51,10 @@ function sanitizeBuyer(rawBuyer) {
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  if (isRateLimited(getClientIp(event))) {
+    return { statusCode: 429, body: JSON.stringify({ error: 'Troppe richieste, riprova tra un minuto.' }) };
   }
 
   try {

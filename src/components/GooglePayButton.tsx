@@ -136,6 +136,11 @@ export default function GooglePayButton({ items, total, country, onSuccess, onEr
             tokenId: stripeToken.id,
             items: items.map(i => ({ handle: i.product.handle, quantity: i.quantity, size: i.size })),
             country,
+            // Paese REALE dell'indirizzo scelto dentro il popup Google Pay,
+            // separato da `country` (quello scelto sul sito prima di aprire
+            // il popup, usato per calcolare l'importo addebitato): il server
+            // li confronta per segnalare un'eventuale spedizione sottostimata.
+            shippingCountry: address?.countryCode || null,
             email: paymentData.email,
             buyer,
           }),

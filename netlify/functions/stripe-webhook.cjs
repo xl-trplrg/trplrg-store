@@ -18,7 +18,9 @@
 const Stripe = require('stripe');
 const { saveStripeConfirmedOrder } = require('./lib/stripe-confirmed-store.cjs');
 const { decrementStockOnce } = require('./lib/stock.cjs');
-const { sendStockAlertEmail } = require('./lib/stock-alert.cjs');
+const { sendStockAlertEmail, sendShippingMismatchAlert } = require('./lib/stock-alert.cjs');
+const { getShippingCost } = require('./lib/shipping.cjs');
+const { PRICES } = require('./lib/prices.cjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -95,6 +97,37 @@ exports.handler = async (event) => {
               items: stockItems,
             });
           }
+        }
+
+        // Confronto tra il paese usato per calcolare la spedizione (scelto
+        // sul sito prima del checkout, salvato in metadata) e il paese reale
+        // dell'indirizzo raccolto da Stripe nel suo stesso form. Non
+        // blocchiamo né correggiamo l'addebito (il pagamento è già
+        // concluso): segnaliamo solo se la spedizione corretta per
+        // l'indirizzo vero sarebbe costata di più.
+        try {
+          const pricedCountry = session.metadata?.pricedCountry || null;
+          const realCountry = shipping?.address?.country || null;
+          const allExemptFromShipping = stockItems.length > 0 && stockItems.every((item) => PRICES[item.handle]?.noShipping);
+          if (!allExemptFromShipping && pricedCountry && realCountry && pricedCountry !== realCountry) {
+            const chargedCents = parseInt(session.metadata?.pricedShippingCents || '0', 10) || 0;
+            const charged = chargedCents / 100;
+            const shouldHaveBeen = getShippingCost(realCountry);
+            if (shouldHaveBeen > charged) {
+              await sendShippingMismatchAlert({
+                source: 'stripe-webhook',
+                reference: session.id,
+                orderId,
+                pricedCountry,
+                realCountry,
+                charged,
+                shouldHaveBeen,
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Errore nel controllo disallineamento spedizione (Stripe):', err);
+          // Solo un alert informativo: non facciamo fallire il webhook per questo.
         }
 
         await saveStripeConfirmedOrder(session.id, {

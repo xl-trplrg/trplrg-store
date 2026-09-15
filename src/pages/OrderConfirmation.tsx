@@ -35,6 +35,18 @@ export default function OrderConfirmation() {
   const [loading, setLoading] = useState(!stateData && !!(sessionId || orderIdParam));
   const [error, setError] = useState('');
 
+  // Toglie session_id / order_id+token dalla barra degli indirizzi una volta
+  // recuperati i dati. Sono identificativi che permettono di rivedere
+  // nome+indirizzo dell'ordine: lasciarli per sempre nell'URL li espone
+  // inutilmente a cronologia del browser, bookmark condivisi e, se in futuro
+  // venisse aggiunto uno script di terze parti su questa pagina, all'header
+  // Referer di eventuali richieste successive. Non cambia la logica di
+  // recupero (già avvenuta sopra), solo cosa resta visibile dopo.
+  function clearSensitiveParamsFromUrl() {
+    if (typeof window === 'undefined') return;
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
   useEffect(() => {
     if (stateData) return;
     if (sessionId) {
@@ -46,6 +58,7 @@ export default function OrderConfirmation() {
             setError(data.error);
           } else {
             setOrder(data);
+            clearSensitiveParamsFromUrl();
           }
         })
         .catch(() => setError('Impossibile recuperare i dettagli dell\'ordine.'))
@@ -65,6 +78,7 @@ export default function OrderConfirmation() {
             setError(data.error);
           } else {
             setOrder(data);
+            clearSensitiveParamsFromUrl();
           }
         })
         .catch(() => setError('Impossibile recuperare i dettagli dell\'ordine.'))

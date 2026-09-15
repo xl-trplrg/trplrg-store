@@ -6,15 +6,27 @@
 // Dopo l'incasso, genera l'Order ID interno TRPLRG (stesso formato di
 // Stripe/Google Pay) e salva una copia dei dettagli per la pagina di conferma,
 // esattamente come fa già generate-order-id.cjs per il vecchio flusso.
+//
+// IDEMPOTENZA: un retry di rete lato client, un doppio click prima che la
+// prima risposta torni, o PayPal stesso che rifiuta una seconda capture con
+// ORDER_ALREADY_CAPTURED, sono tutti casi in cui questa funzione può essere
+// chiamata più volte per lo STESSO orderID PayPal dopo che il pagamento è
+// già stato incassato una volta. Vedi lib/paypal-capture-record.cjs: il
+// risultato finale (orderId TRPLRG, accessToken, buyer) viene salvato lì al
+// termine della prima esecuzione riuscita, e riletto all'inizio di ogni
+// chiamata successiva per restituire sempre la stessa risposta invece di un
+// errore o di un secondo ordine duplicato.
 
 const crypto = require('crypto');
 const { getPayPalAccessToken } = require('./lib/paypal-client.cjs');
 const { generateOrderId } = require('./lib/order-id.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { PRICES } = require('./lib/prices.cjs');
+const { getShippingCost } = require('./lib/shipping.cjs');
 const { decrementStockOnce } = require('./lib/stock.cjs');
-const { sendStockAlertEmail } = require('./lib/stock-alert.cjs');
+const { sendStockAlertEmail, sendShippingMismatchAlert } = require('./lib/stock-alert.cjs');
 const { getPendingItems, deletePendingItems } = require('./lib/pending-paypal-items.cjs');
+const { saveCaptureResult, getCaptureResult } = require('./lib/paypal-capture-record.cjs');
 
 // URL base dell'API PayPal, configurabile via env var per poter puntare alla
 // sandbox in test (PAYPAL_API_BASE_URL=https://api-m.sandbox.paypal.com) senza
@@ -33,6 +45,18 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'orderID mancante' }) };
     }
 
+    // Se questo orderID è già stato incassato e processato con successo in
+    // una chiamata precedente, restituiamo subito lo stesso risultato:
+    // niente seconda chiamata a PayPal, niente secondo decremento scorte,
+    // niente secondo Order ID generato per lo stesso pagamento.
+    const existingCapture = await getCaptureResult(orderID);
+    if (existingCapture) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ success: true, ...existingCapture, alreadyProcessed: true }),
+      };
+    }
+
     // Fonte di verità: gli articoli salvati alla CREAZIONE dell'ordine (validi,
     // impossibili da alterare dal browser). NON si usa più il fallback su
     // clientItems per decrementare le scorte: fidarsi del carrello mandato dal
@@ -40,9 +64,9 @@ exports.handler = async (event) => {
     // carrello diverso da quello effettivamente creato/pagato. Se il recupero
     // fallisce, blocchiamo la capture (il pagamento non viene incassato) e
     // logghiamo per gestione manuale, invece di procedere alla cieca.
-    const pendingItems = await getPendingItems(orderID);
+    const pending = await getPendingItems(orderID);
 
-    if (!Array.isArray(pendingItems) || pendingItems.length === 0) {
+    if (!pending || !Array.isArray(pending.items) || pending.items.length === 0) {
       console.error(
         'paypal-capture-order: articoli pending non trovati/non validi per orderID',
         orderID,
@@ -57,7 +81,8 @@ exports.handler = async (event) => {
       };
     }
 
-    const items = pendingItems;
+    const items = pending.items;
+    const pricedCountry = pending.country;
 
     const accessToken = await getPayPalAccessToken();
 
@@ -71,6 +96,43 @@ exports.handler = async (event) => {
 
     if (!response.ok) {
       const errText = await response.text();
+      let alreadyCaptured = false;
+      try {
+        const errBody = JSON.parse(errText);
+        alreadyCaptured = Array.isArray(errBody?.details) && errBody.details.some((d) => d.issue === 'ORDER_ALREADY_CAPTURED');
+      } catch {
+        // corpo errore non JSON, ignoriamo
+      }
+
+      if (alreadyCaptured) {
+        // PayPal conferma che è già stato incassato in una chiamata
+        // precedente. Se il nostro record non è ancora arrivato (piccolo
+        // ritardo di scrittura tra due richieste quasi simultanee),
+        // ritentiamo una volta la lettura prima di arrenderci.
+        const record = await getCaptureResult(orderID);
+        if (record) {
+          return {
+            statusCode: 200,
+            body: JSON.stringify({ success: true, ...record, alreadyProcessed: true }),
+          };
+        }
+        console.error(
+          'paypal-capture-order: PayPal segnala ORDER_ALREADY_CAPTURED ma nessun record locale trovato per orderID',
+          orderID, '— richiede verifica manuale (il pagamento risulta comunque incassato su PayPal).'
+        );
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            success: true,
+            orderId: null,
+            accessToken: null,
+            buyer: null,
+            alreadyProcessed: true,
+            notice: 'Il pagamento risulta già incassato. Se non vedi la conferma completa, contatta il supporto con il tuo numero PayPal.',
+          }),
+        };
+      }
+
       console.error('Errore capture PayPal:', errText);
       throw new Error(`Capture PayPal fallita: ${response.status}`);
     }
@@ -109,12 +171,14 @@ exports.handler = async (event) => {
     // browser, in PayPalButton.tsx onApprove) — qui è più sicuro perché i dati
     // vengono letti direttamente dalla risposta di PayPal, non da input del client.
     let buyer;
+    let realCountry = null;
     try {
       const shipping = details?.purchase_units?.[0]?.shipping;
       const payerName = details?.payer?.name;
       const name = shipping?.name?.full_name
         || (payerName ? `${payerName.given_name || ''} ${payerName.surname || ''}`.trim() : '');
       const a = shipping?.address;
+      realCountry = a?.country_code || null;
       if (name || a) {
         buyer = {
           name: name || '',
@@ -152,6 +216,33 @@ exports.handler = async (event) => {
       // Il pagamento è già incassato: non blocchiamo la risposta per un problema di order-id.
     }
 
+    // Confronto tra il paese usato per calcolare la spedizione (scelto sul
+    // sito, prima del pagamento) e il paese reale dell'indirizzo raccolto da
+    // PayPal al momento dell'approvazione. Non blocchiamo né correggiamo
+    // l'addebito (il pagamento è già concluso): segnaliamo solo al venditore
+    // se la spedizione corretta per il paese reale sarebbe costata di più.
+    try {
+      const allExemptFromShipping = items.every((item) => PRICES[item.handle]?.noShipping);
+      if (!allExemptFromShipping && realCountry && pricedCountry && realCountry !== pricedCountry) {
+        const charged = getShippingCost(pricedCountry);
+        const shouldHaveBeen = getShippingCost(realCountry);
+        if (shouldHaveBeen > charged) {
+          await sendShippingMismatchAlert({
+            source: 'paypal-capture-order',
+            reference: orderID,
+            orderId,
+            pricedCountry,
+            realCountry,
+            charged,
+            shouldHaveBeen,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Errore nel controllo disallineamento spedizione (PayPal):', err);
+      // Solo un alert informativo: non blocchiamo la risposta per questo.
+    }
+
     // Stesso token casuale usato per gli ordini Stripe/Google Pay: protegge
     // get-order-by-id.cjs dall'enumerazione dell'orderId.
     const accessTokenForOrder = crypto.randomBytes(16).toString('hex');
@@ -164,9 +255,17 @@ exports.handler = async (event) => {
       accessToken: accessTokenForOrder,
     });
 
+    const result = { orderId, accessToken: accessTokenForOrder, buyer: buyer || null };
+
+    // Salviamo il risultato finale ANCHE indicizzato per orderID PayPal:
+    // se questa stessa richiesta di capture viene ripetuta (retry, doppio
+    // click, ORDER_ALREADY_CAPTURED), la prossima esecuzione lo trova e
+    // restituisce questa identica risposta invece di rifare tutto da capo.
+    await saveCaptureResult(orderID, result);
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, orderId, accessToken: accessTokenForOrder, buyer: buyer || null }),
+      body: JSON.stringify({ success: true, ...result }),
     };
   } catch (err) {
     console.error('Errore in paypal-capture-order:', err);

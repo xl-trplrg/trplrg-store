@@ -7,7 +7,10 @@
 // genera PayPal, il client si limita a farlo approvare dall'utente.
 //
 // Non è la fonte di verità del pagamento (quella resta PayPal), è solo il
-// carrello che avevamo validato un istante prima di mandarlo a PayPal.
+// carrello (+ paese usato per calcolare la spedizione) che avevamo validato
+// un istante prima di mandarlo a PayPal. Il paese serve a
+// paypal-capture-order.cjs per confrontarlo con l'indirizzo di spedizione
+// reale restituito da PayPal alla capture (vedi commento lì).
 const { getStore } = require('@netlify/blobs');
 
 function getPendingStore() {
@@ -19,11 +22,11 @@ function getPendingStore() {
   return getStore('paypal-pending-items');
 }
 
-async function savePendingItems(orderID, items) {
+async function savePendingItems(orderID, items, country) {
   if (!orderID) return;
   try {
     const store = getPendingStore();
-    await store.setJSON(orderID, items, {
+    await store.setJSON(orderID, { items, country: country || null }, {
       metadata: { savedAt: Date.now() },
     });
   } catch (err) {
@@ -33,11 +36,19 @@ async function savePendingItems(orderID, items) {
   }
 }
 
+// Ritorna sempre { items, country }, indipendentemente da quale forma sia
+// salvata su Blobs: retrocompatibile con eventuali entry salvate dalla
+// versione precedente di questo file (un semplice array di items, senza
+// country), che possono restare valide per pochi minuti a cavallo di un
+// deploy — normale finestra di approvazione PayPal, non un caso permanente.
 async function getPendingItems(orderID) {
   if (!orderID) return null;
   try {
     const store = getPendingStore();
-    return await store.get(orderID, { type: 'json' });
+    const data = await store.get(orderID, { type: 'json' });
+    if (!data) return null;
+    if (Array.isArray(data)) return { items: data, country: null }; // forma precedente
+    return { items: data.items || null, country: data.country || null };
   } catch {
     return null;
   }

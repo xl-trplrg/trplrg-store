@@ -11,7 +11,7 @@ const { generateOrderId } = require('./lib/order-id.cjs');
 const { getShippingCost } = require('./lib/shipping.cjs');
 const { saveOrderDetails } = require('./lib/orders-store.cjs');
 const { hasEnoughStock, decrementStockOnce, exceedsMaxPerProduct } = require('./lib/stock.cjs');
-const { sendStockAlertEmail } = require('./lib/stock-alert.cjs');
+const { sendStockAlertEmail, sendShippingMismatchAlert } = require('./lib/stock-alert.cjs');
 
 // Stessa fonte di verità prezzi usata da create-checkout-session.cjs.
 // Se aggiorni un prezzo in un posto, aggiornalo anche nell'altro.
@@ -59,7 +59,7 @@ exports.handler = async (event) => {
 
   try {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-    const { tokenId, items, country, email, buyer } = JSON.parse(event.body);
+    const { tokenId, items, country, shippingCountry, email, buyer } = JSON.parse(event.body);
 
     if (!tokenId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Token mancante' }) };
@@ -148,6 +148,32 @@ exports.handler = async (event) => {
         orderId = await generateOrderId(items);
       } catch {
         // il pagamento è già riuscito, non blocchiamo la risposta per un problema di order-id
+      }
+
+      // Confronto tra il paese usato per calcolare la spedizione (scelto sul
+      // sito prima di aprire il popup Google Pay) e il paese reale
+      // dell'indirizzo scelto DENTRO il popup. Non blocchiamo né correggiamo
+      // l'addebito (il pagamento è già concluso): segnaliamo solo se la
+      // spedizione corretta per l'indirizzo vero sarebbe costata di più.
+      try {
+        if (!allExemptFromShipping && shippingCountry && country && shippingCountry !== country) {
+          const shouldHaveBeen = testOverride ?? getShippingCost(shippingCountry);
+          const charged = testOverride ?? getShippingCost(country);
+          if (shouldHaveBeen > charged) {
+            await sendShippingMismatchAlert({
+              source: 'google-pay-charge',
+              reference: paymentIntent.id,
+              orderId,
+              pricedCountry: country,
+              realCountry: shippingCountry,
+              charged,
+              shouldHaveBeen,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Errore nel controllo disallineamento spedizione (Google Pay):', err);
+        // Solo un alert informativo: non blocchiamo la risposta per questo.
       }
 
       // Salviamo una copia dei dettagli ordine, così la pagina di conferma
