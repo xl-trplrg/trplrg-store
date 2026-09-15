@@ -82,3 +82,10 @@ Il deploy è automatico su push, gestito da Netlify (`netlify.toml`): build
 command `npm run build`, publish directory `dist`, functions in
 `netlify/functions`. Le variabili d'ambiente vanno configurate su Netlify
 (Site settings -> Environment variables), non nel repo.
+
+## Link ufficiali
+
+- [Sito ufficiale](https://trplrg.com)
+- [Instagram](https://www.instagram.com/trplrg/)
+- [Facebook](https://www.facebook.com/profile.php?id=61593870356425)
+- [YouTube](https://www.youtube.com/@XLTRPLRG)
