@@ -21,6 +21,34 @@ const INITIAL_STOCK = {
 // scorte reali. Cambialo qui se serve un numero diverso.
 const MAX_PER_PRODUCT = 10;
 
+// I marker `processed:` si accumulerebbero per sempre nel Blobs store. Ogni
+// tanto (al più una volta all'ora, e solo a ridosso di una scrittura riuscita)
+// eliminiamo quelli più vecchi di 30 giorni: un pagamento di un mese fa non
+// può più arrivare in ritardo. I marker salvati prima di questo cambiamento
+// (senza data in metadata) restano semplicemente intoccabili.
+const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
+const MARKER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+let lastMarkerPrune = 0;
+
+async function pruneProcessedMarkers(store) {
+  const now = Date.now();
+  if (now - lastMarkerPrune < PRUNE_INTERVAL_MS) return;
+  lastMarkerPrune = now;
+  try {
+    const { blobs } = await store.list({ prefix: 'processed:' });
+    let deleted = 0;
+    for (const blob of blobs || []) {
+      const doneAt = blob?.metadata?.doneAt;
+      if (typeof doneAt === 'number' && now - doneAt > MARKER_TTL_MS) {
+        await store.delete(blob.key);
+        if (++deleted >= 50) break; // pulizia graduale, mai bloccante a lungo
+      }
+    }
+  } catch (err) {
+    console.error('Errore nella pulizia marker scorte:', err);
+  }
+}
+
 const { getStore } = require('@netlify/blobs');
 
 function getStockStore() {
@@ -180,7 +208,8 @@ async function decrementStockOnce(idempotencyKey, items) {
 
   if (result.ok && markerKey) {
     try {
-      await store.setJSON(markerKey, true);
+      await store.setJSON(markerKey, true, { metadata: { doneAt: Date.now() } });
+      await pruneProcessedMarkers(store);
     } catch (err) {
       console.error('Errore nel salvare il marker idempotenza scorte:', err);
     }

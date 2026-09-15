@@ -22,6 +22,33 @@ function getPendingStore() {
   return getStore('paypal-pending-items');
 }
 
+// Gli ordini PayPal abbandonati (mai approvati) lascerebbero entry pending per
+// sempre nello store. A ogni salvataggio approfittiamo per eliminare quelli più
+// vecchi di 7 giorni: dopo una settimana il popup PayPal è da molto scaduto e
+// quell'orderID non verrà mai più catturato.
+const PENDING_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PENDING_PRUNE_INTERVAL_MS = 60 * 60 * 1000;
+let lastPendingPrune = 0;
+
+async function prunePendingStore(store) {
+  const now = Date.now();
+  if (now - lastPendingPrune < PENDING_PRUNE_INTERVAL_MS) return;
+  lastPendingPrune = now;
+  try {
+    const { blobs } = await store.list();
+    let deleted = 0;
+    for (const blob of blobs || []) {
+      const savedAt = blob?.metadata?.savedAt;
+      if (typeof savedAt === 'number' && now - savedAt > PENDING_TTL_MS) {
+        await store.delete(blob.key);
+        if (++deleted >= 50) break; // pulizia graduale
+      }
+    }
+  } catch (err) {
+    console.error('Errore nella pulizia pending PayPal:', err);
+  }
+}
+
 async function savePendingItems(orderID, items, country) {
   if (!orderID) return;
   try {
@@ -29,10 +56,12 @@ async function savePendingItems(orderID, items, country) {
     await store.setJSON(orderID, { items, country: country || null }, {
       metadata: { savedAt: Date.now() },
     });
+    await prunePendingStore(store);
   } catch (err) {
     console.error('Errore nel salvare gli articoli pending PayPal:', err);
-    // Se il salvataggio fallisce, paypal-capture-order.cjs userà il fallback
-    // (items mandati dal client) — non blocchiamo la creazione dell'ordine.
+    // Se il salvataggio fallisce, la capture verrà BLOCCATA con 409 da
+    // paypal-capture-order.cjs (gestione manuale) — non blocchiamo comunque
+    // la creazione dell'ordine.
   }
 }
 

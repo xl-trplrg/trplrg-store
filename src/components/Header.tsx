@@ -40,16 +40,16 @@ export default function Header() {
 
         <div className="header__icon-row">
           <div className="header__left">
-            <button className="header__icon-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
+            <button className="header__icon-btn" onClick={() => setSearchOpen(true)} aria-label="Cerca">
               <SearchIcon />
             </button>
-            <button className="header__icon-btn header__mobile-only" onClick={() => setMobileOpen(true)} aria-label="Menu">
+            <button className="header__icon-btn header__mobile-only" onClick={() => setMobileOpen(true)} aria-label="Apri menu">
               <MenuIcon />
             </button>
           </div>
 
           <div className="header__right">
-            <button className="header__icon-btn header__cart-btn" onClick={openCart} aria-label="Cart">
+            <button className="header__icon-btn header__cart-btn" onClick={openCart} aria-label="Carrello">
               <CartIcon />
               {count > 0 && <span className="header__cart-count">{count}</span>}
             </button>
@@ -77,7 +77,7 @@ export default function Header() {
                 onChange={e => setQuery(e.target.value)}
               />
             </form>
-            <button onClick={() => setSearchOpen(false)} aria-label="Close">
+            <button onClick={() => setSearchOpen(false)} aria-label="Chiudi">
               <CloseIcon size={20} />
             </button>
           </div>
@@ -89,7 +89,7 @@ export default function Header() {
           <div className="mobile-menu__panel" onClick={e => e.stopPropagation()}>
             <div className="mobile-menu__header">
               <span>Menu</span>
-              <button onClick={() => setMobileOpen(false)} aria-label="Close"><CloseIcon /></button>
+              <button onClick={() => setMobileOpen(false)} aria-label="Chiudi"><CloseIcon /></button>
             </div>
             <Link to="/" onClick={() => setMobileOpen(false)}>Home</Link>
             <a href="https://instagram.com/trplrg" target="_blank" rel="noopener noreferrer">Instagram</a>
