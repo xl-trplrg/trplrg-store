@@ -102,6 +102,16 @@ export default function Footer() {
             <Link to="/termini">Termini di servizio</Link>
             <Link to="/privacy">Informativa sulla privacy</Link>
           <Link to="/cookie-policy">Cookie Policy</Link>  
+          <button
+            type="button"
+            style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+            onClick={() => {
+              try { localStorage.removeItem('xl-cookie-consent'); } catch { /* ignore */ }
+              window.location.reload();
+            }}
+          >
+            Preferenze cookie
+          </button>
           </div>
           <div className="footer__bottom-right">
             <div className="footer__payments">

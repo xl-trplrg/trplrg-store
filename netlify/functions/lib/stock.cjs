@@ -164,19 +164,37 @@ async function decrementStock(items) {
       // Esaurito a metà ordine, o troppi tentativi in conflitto: ripristiniamo
       // quanto già scalato per gli altri articoli dello STESSO ordine.
       // O va scalato tutto, o niente.
+      const restoreFailures = [];
       for (const done of applied) {
         try {
           // Anche il ripristino usa una scrittura condizionata, per lo stesso motivo.
-          for (let r = 0; r < 5; r++) {
+          let restoredOk = false;
+          for (let r = 0; r < 5 && !restoredOk; r++) {
             const { value: cur, etag: curEtag } = await readCurrentWithEtag(store, done.handle);
             const restored = cur + done.qty;
             const opts = curEtag ? { onlyIfMatch: curEtag } : { onlyIfNew: true };
             const res = await store.setJSON(done.handle, restored, opts);
-            if (res && res.modified !== false) break;
+            if (res && res.modified !== false) restoredOk = true;
           }
+          if (!restoredOk) restoreFailures.push(done.handle);
         } catch (err) {
           console.error('Errore nel ripristino scorte dopo esaurimento parziale:', err);
+          restoreFailures.push(done.handle);
         }
+      }
+      if (restoreFailures.length > 0) {
+        // Senza questo alert, un ripristino fallito lascerebbe le scorte
+        // permanentemente sotto-decrementate senza che nessuno se ne accorga.
+        try {
+          const { sendStockAlertEmail } = require('./stock-alert.cjs');
+          await sendStockAlertEmail({
+            source: 'stock.cjs (ripristino parziale fallito)',
+            idempotencyKey: 'n/d',
+            handle: restoreFailures.join(', '),
+            remaining: undefined,
+            items,
+          });
+        } catch { /* l'alert è secondario, non bloccare il flusso */ }
       }
       return { ok: false, handle, remaining: lastKnown };
     }

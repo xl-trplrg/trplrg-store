@@ -35,8 +35,10 @@ exports.handler = async (event) => {
       expand: ['line_items.data.price.product'],
     });
 
+    // Stessa risposta generica di un ID inesistente: non riveliamo a un
+    // estraneo che il session_id è valido né in che stato è il pagamento.
     if (session.payment_status !== 'paid') {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Ordine non pagato' }) };
+      return { statusCode: 404, body: JSON.stringify({ error: 'Ordine non trovato' }) };
     }
 
     const items = session.line_items.data.map((li) => ({
