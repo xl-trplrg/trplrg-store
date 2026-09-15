@@ -1,0 +1,28 @@
+# XL — Troppo Largo (trplrg.com)
+
+> Store ufficiale di XL, artista rap/boom bap italiano: vinile, CD e merch
+> dell'album di debutto "Troppo Largo", interamente autoprodotto.
+> Pagamenti sicuri con Stripe, PayPal e Google Pay. Spedizione in tutto il mondo.
+
+## Il progetto
+XL è un artista rap/boom bap italiano. "Troppo Largo" è il suo album di
+debutto, registrato e prodotto in completa autonomia. Questo sito è lo store
+ufficiale del progetto: ogni acquisto sostiene direttamente l'artista.
+
+## Prodotti
+- Vinile "Troppo Largo" — 30 €
+- CD "Troppo Largo" — 20 €
+- T-shirt "XL" — 25 €
+- Felpa "XL" — 40 €
+
+Spedizione dal magazzino in Italia: 6 € Italia, 12 € Europa,
+28 € USA/Canada, 35 € resto del mondo.
+
+## Link
+- [Store](https://trplrg.com)
+- [Instagram](https://instagram.com/trplrg)
+- [Facebook](https://www.facebook.com/profile.php?id=61593870356425)
+
+## Contatti
+Email di supporto: trplrg.support@protonmail.com
+Newsletter: iscrizione disponibile nel footer del sito.

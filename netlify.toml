@@ -53,3 +53,20 @@
   for = "/ordine-confermato"
   [headers.values]
     X-Robots-Tag = "noindex, follow"
+
+# Header di sicurezza: difesa in profondità a costo zero.
+# - nosniff: il browser non "indovina" i tipi di file
+# - X-Frame-Options DENY: il sito non può essere incorniciato da siti terzi
+#   (anti-clickjacking); il pagamento avviene su Stripe/PayPal, nessuna nostra
+#   pagina deve stare in un iframe
+# - Referrer-Policy: limita i dati di provenienza inviati a siti terzi
+# - HSTS: i browser usano sempre HTTPS
+# CSP volutamente NON impostata: con gli script di Stripe/PayPal/Google una CSP
+# sbagliata bloccherebbe i pagamenti. Valutabile solo in report-only.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
