@@ -113,7 +113,6 @@ export default function Footer() {
           <Link to="/cookie-policy">Cookie Policy</Link>  
           <button
             type="button"
-            style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
             onClick={() => {
               try { localStorage.removeItem('xl-cookie-consent'); } catch { /* ignore */ }
               window.location.reload();

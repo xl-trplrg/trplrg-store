@@ -158,13 +158,16 @@
   flex-wrap: wrap;
 }
 
-.footer__links a {
+.footer__links a,
+.footer__links button {
+  padding: 0;
   font-size: 12px;
   color: var(--muted);
   transition: color 0.2s;
 }
 
-.footer__links a:hover {
+.footer__links a:hover,
+.footer__links button:hover {
   color: var(--fg);
 }
 
