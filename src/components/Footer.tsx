@@ -95,6 +95,15 @@ export default function Footer() {
           </div>
         </div>
 
+        {pathname === '/' && (
+          <div className="footer__seo">
+            <h1 className="footer__seo-title">Il rapper XL pubblica &quot;Troppo Largo&quot;, disponibile in vinile, CD e merch ufficiale</h1>
+            <p className="footer__seo-text">L&apos;album di debutto di XL, interamente autoprodotto. Sul sito trovi il vinile, il CD e il merchandising ufficiale, con spedizione in tutto il mondo e pagamenti sicuri. Ogni acquisto sostiene direttamente l&apos;artista.</p>
+            <h2 className="footer__seo-subtitle">Chi è XL?</h2>
+            <p className="footer__seo-text">XL è un rapper e producer classe 1998, nato e cresciuto tra Pescara e provincia. Sempre attivo nel territorio, oggi raccoglie le sue registrazioni in un progetto atto a rimanere nel tempo e a mettere una pietra miliare nel genere, a livello italiano ed oltre. XL / Troppolargo rappresenta la propria gente, la città di Pescara e la regione Abruzzo. Troppolargo è un modo di pensare, di agire e di essere: va oltre l&apos;omologazione e il rispetto acritico delle regole, costruendo un pensiero critico verso il totalitarismo moderno — rappresentandolo nel modo più pacifico che esista: l&apos;arte.</p>
+          </div>
+        )}
+
         <div className="footer__bottom">
           <div className="footer__links">
             <Link to="/recapiti">Recapiti</Link>
@@ -112,6 +121,7 @@ export default function Footer() {
           >
             Preferenze cookie
           </button>
+          <a href="/sitemap.xml">Mappa del sito</a>
           </div>
           <div className="footer__bottom-right">
             <div className="footer__payments">

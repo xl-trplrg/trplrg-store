@@ -225,3 +225,31 @@
     gap: 16px;
   }
 }
+
+/* Blocco SEO home: visibile solo sulla home, stile sobrio coerente col footer */
+.footer__seo {
+  max-width: 46rem;
+  margin: 2rem auto 0;
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.footer__seo-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+}
+
+.footer__seo-subtitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.footer__seo-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  opacity: 0.75;
+  margin: 0;
+}

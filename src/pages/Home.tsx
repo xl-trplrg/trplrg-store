@@ -6,7 +6,7 @@ import './Home.css';
 export default function Home() {
   usePageMeta({
     title: '',
-    description: "L'album di debutto di XL. Vinile, CD e merch ufficiale.",
+    description: "Troppo Largo, album di debutto di XL: acquista vinile, CD e merch ufficiale. Spedizione mondiale, pagamenti sicuri.",
     image: 'https://trplrg.com/brand/og-image.jpg',
   });
 

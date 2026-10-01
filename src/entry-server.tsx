@@ -70,7 +70,7 @@ export function getMeta(url: string): RouteMeta {
   if (url === '/') {
     return {
       title: 'XL — Troppo Largo | Vinile, CD e Merch Ufficiale',
-      description: DEFAULT_META.description,
+      description: "Troppo Largo, album di debutto di XL: acquista vinile, CD e merch ufficiale. Spedizione mondiale, pagamenti sicuri.",
       image: DEFAULT_META.image,
     };
   }
